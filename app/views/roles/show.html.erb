@@ -1,0 +1,13 @@
+<% content_for :title, "#{@role.title} at #{@role.company}" %>
+
+<article>
+  <h1 class="text-2xl font-bold"><%= @role.title %> at <%= @role.company %></h1>
+  <p class="mt-2 text-sm text-stone-400"><%= role_dates(@role) %></p>
+  <%= render "shared/tags", tags: @role.tag_list %>
+
+  <% if @role.body.present? %>
+    <div class="prose mt-6"><%= markdown(@role.body) %></div>
+  <% elsif @role.summary.present? %>
+    <p class="mt-6 text-stone-600"><%= @role.summary %></p>
+  <% end %>
+</article>

@@ -1,93 +1,135 @@
 # Ghost Applicant
 
-A resume and cover-letter tailoring workspace driven by opencode. You chat with
-the model about your real experience; it keeps a fact-based knowledge base and
-produces tailored resumes and cover letter drafts for each job opening — in
-your own voice, grounded only in what's true.
+Personal portfolio/blog running as a modern Rails app (Rails 8, SQLite, Tailwind)
+that **embeds its own Model Context Protocol (MCP) server** at `/mcp`. The whole
+site — posts, projects, work history, and a flexible runtime tag system — is
+authored over that MCP surface, and resumes can be generated from the facts in
+the database by a local LLM running in LM Studio.
 
-## How it works
+## What it does
 
-Two parts:
+- **Portfolio/blog site.** Posts, projects, and roles with Markdown bodies,
+  rendered with Tailwind.
+- **Flexible tag system.** Records are tagged with `taxonomy:name` labels
+  (e.g. `skill:ruby`, `tool:rails`, `topic:jobs`). Both *taxonomies* and *tags*
+  are created on demand at runtime — no schema changes, no fixed catalog.
+- **Embedded MCP server.** A Model Context Protocol server (official Ruby SDK,
+  streamable HTTP) mounted at `/mcp` exposes tools to create/list/update/delete
+  posts, projects, and roles, manage tags, and generate resumes.
+- **Local-LLM resumes.** `generate_resume` calls an LM Studio–compatible
+  OpenAI API and writes resume Markdown from the tagged facts in the database.
+  Nothing is invented: only facts already in the DB go in.
 
-1. **Knowledge base (`knowledge/`)** — a set of markdown files holding who you
-   are, your experience, your skills, and your writing voice. This is the only
-   place facts come from.
-2. **Per-job output (`jobs/`)** — for each opening you apply to, a tailored
-   resume and cover letter draft saved into its own folder.
+## Quick start (Docker)
 
-**Ground rule:** nothing is invented. Every resume/letter claim traces to a real
-fact in the KB. When information is missing, the model asks you instead of
-guessing.
+Requires Docker with Compose. LM Studio integration is optional.
+
+```sh
+docker compose up -d          # builds and starts the app, binds :3000
+docker compose run --rm app bin/rails db:prepare   # first run (already done)
+docker compose up -d app      # start, or: docker compose restart app
+```
+
+- Site: <http://localhost:3000>
+- MCP endpoint: <http://localhost:3000/mcp>
+- Health: <http://localhost:3000/up>
+
+Bootstrap some sample content (roles, projects, posts, tags):
+
+```sh
+docker compose run --rm app bin/rails db:seed
+```
+
+Stop with `docker compose down`. The SQLite database lives in `storage/` on the
+host, so your content persists regardless.
+
+## Using the MCP server
+
+Point any MCP client at `http://localhost:3000/mcp`. For example, this repo's
+own `opencode.json` already registers it:
+
+```json
+{ "mcp": { "ghost-applicant": { "type": "remote", "url": "http://localhost:3000/mcp" } } }
+```
+
+(Start the app before opencode — and restart opencode after changing config.)
+
+Exposed tools (22):
+
+| Area      | Tools                                                                                        |
+|-----------|----------------------------------------------------------------------------------------------|
+| Taxonomies| `list_taxonomies`, `create_taxonomy`                                                         |
+| Tags      | `list_tags`, `create_tag`, `tag_record`, `untag_record`, `record_tags`                       |
+| Posts     | `list_posts`, `create_post`, `update_post`, `delete_post`, `publish_post`                    |
+| Projects  | `list_projects`, `create_project`, `update_project`, `delete_project`                        |
+| Roles     | `list_roles`, `create_role`, `update_role`, `delete_role`                                    |
+| Resumes   | `generate_resume`, `list_resumes`                                                            |
+
+The server runs a single process (Puma, default). The streamable HTTP transport
+keeps session state in memory, which is fine for local single-user use.
+
+## The tag system
+
+Three tables: `Taxonomy → Tag → Tagging` (polymorphic). A label is
+`taxonomy:name`. Any tool that accepts `tags:` will create missing taxonomies
+and tags automatically. Typical taxonomies: `skill`, `tool`, `topic`,
+`industry` — but invent whatever fits; it's a free-form catalog, not a fixed enum.
+Tag browsing URLs: `/tags/<taxonomy>` and `/tags/<taxonomy>/<tag>`.
+
+## Resume generation with LM Studio
+
+`generate_resume` (or the `ResumeGenerator` service) builds a fact sheet from
+roles, projects, and per-taxonomy skill tags, then chats with a local model.
+
+Configure via environment (defaults work for a stock LM Studio on the host):
+
+| Variable             | Default                         |
+|----------------------|---------------------------------|
+| `LM_STUDIO_BASE_URL` | `http://host.docker.internal:1234` |
+| `LM_STUDIO_MODEL`    | *unset — LM Studio picks a loaded model* |
+
+Overrides go in a `.env` file next to `docker-compose.yml` (compose reads it
+automatically): `LM_STUDIO_MODEL="qwen3-coder-30b-instruct"`. The tool returns a
+friendly error if LM Studio is unreachable, so it degrades cleanly.
+
+If LM Studio runs on the host, `host.docker.internal` reaches it from the
+container (Docker Desktop). Local non-Docker runs fall back to
+`http://localhost:1234`.
+
+## Tests & lint
+
+```sh
+docker compose run --rm app bin/rails test       # Minitest, builds Tailwind first
+docker compose run --rm app bin/rubocop
+```
 
 ## Layout
 
 ```
-ghost-applicant/
-├── opencode.json                  # opencode config (don't break)
-├── AGENTS.md                      # system instructions (the rules)
-├── .opencode/
-│   ├── skills/resume/SKILL.md     # resume + tailoring workflow
-│   ├── skills/ingest/SKILL.md     # ingesting documents + deriving voice
-│   ├── commands/kb.md             # /kb — capture your experience
-│   └── commands/job.md            # /job — tailor for a specific opening
-├── ingest/                        # drop raw docs to convert (see below)
-├── scripts/convert-ingest.mjs     # PDF/docx→md converter (MCP fallback)
-├── knowledge/                     # your facts and your voice
-│   ├── _profile.md                # who you are, target roles, tone
-│   ├── skills.md                  # skills & tools
-│   ├── letters.md                 # voice patterns distilled from samples
-│   ├── roles/                     # one file per past role
-│   ├── samples/cover-letters/     # your past letters (voice corpus)
-│   └── case-studies/              # your detailed written work
-└── jobs/                          # one folder per application
-    └── <company>-<role>/
-        ├── job-post.md            # the job description
-        ├── resume-custom.md       # tailored resume
-        ├── cover-letter.md        # cover letter draft
-        └── notes.md               # rationale (what you used/cut)
+app/
+  assets/tailwind/application.css   # Tailwind v4 input (+ .prose component styles)
+  controllers/                      # pages, posts, projects, roles, tags
+  mcp/
+    mcp_support.rb                  # serializers + shared query helpers
+    tools/                          # the 22 MCP tool classes
+  models/                           # Post, Project, Role, Taxonomy, Tag, Tagging, GeneratedResume
+  models/concerns/taggable.rb       # runtime taxonomy/tag tagging for records
+  services/
+    lm_studio_client.rb             # OpenAI-compatible client for local models
+    resume_generator.rb             # builds the fact sheet + prompts the model
+    markdown_renderer.rb            # Commonmark (GFM) → HTML
+config/
+  initializers/mcp.rb               # assembles MCP_SERVER and its tools
+  routes.rb                         # mounts the MCP transport at /mcp
+legacy/                             # the previous opencode-only workspace (archived)
+bin/dev                             # Rails server + Tailwind watcher, binds 0.0.0.0
 ```
 
-## Quick start
+## Roadmap / natural next steps
 
-0. **Restart opencode** after adding files so commands/skills reload.
-
-1. **Capture your experience — `/kb`**
-   ```
-   /kb
-   ```
-   The model interviews you and writes your real history into `knowledge/`.
-   Do this for each past role, plus your profile and skills.
-
-2. **Feed it your voice — give the model past letters or a PDF case study**
-   Either paste the text, give a file path, or run `/ingest` and point it at
-   the files. It converts to markdown under `knowledge/samples/` and
-   `knowledge/case-studies/`, then derives your letter voice into
-   `knowledge/_profile.md` and `knowledge/letters.md`.
-
-   **If the markitdown MCP tool isn't loaded:** drop the raw files into
-   `ingest/`, then run `node scripts/convert-ingest.mjs`. The converted markdown
-   appears in `ingest/converted/`, and `/ingest` reads it from there.
-
-3. **Tailor for a job — `/job`**
-   ```
-   /job https://company.com/careers/senior-engineer
-   ```
-   It fetches the description, creates `jobs/<company>-<role>/`, and writes a
-   tailored resume + cover letter. It will ask you clarifying questions if the
-   KB doesn't cover what the job needs.
-
-## The commands
-
-| Command      | What it does                                      |
-| ------------ | ------------------------------------------------- |
-| `/kb`        | Interview you and record experience into the KB   |
-| `/ingest`    | Add past letters / case studies and learn your voice |
-| `/job`       | Tailored resume + cover letter for an opening     |
-
-(You can also just chat — the resume and ingest skills auto-trigger from what
-you say.)
-
-## Notes
-
-- Output is markdown for now. PDF/.doc rendering is a future option.
-- Commit/back up the repo so your KB and voice data are safe — it's plain text.
+- Per-job resume generation: store job descriptions, generate tailored resumes,
+  and diff them against the fact base.
+- Background resume jobs via Solid Queue (already bundled).
+- Simple HTTP auth + a bare-bones browser editor for quick fixes.
+- Migrate the archived `legacy/knowledge/` into real `Role`/`Project`/`Post`
+  records via the MCP tools.

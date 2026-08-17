@@ -1,0 +1,77 @@
+<% content_for :title, "Portfolio" %>
+
+<section>
+  <h1 class="text-2xl font-bold">It's me — this is my portfolio and blog.</h1>
+  <p class="mt-3 leading-relaxed text-stone-600">
+    Everything on this site is written from this repo: posts, projects, work history,
+    and a tag system shaped at runtime over the app's built-in MCP server.
+  </p>
+</section>
+
+<% if @roles.any? %>
+  <section class="mt-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">History</h2>
+    <ul class="mt-3 divide-y divide-stone-200">
+      <% @roles.each do |role| %>
+        <li class="py-3">
+          <%= link_to role_path(role), class: "block" do %>
+            <div class="flex items-baseline justify-between gap-2">
+              <span class="font-medium"><%= role.title %></span>
+              <span class="shrink-0 text-sm text-stone-400"><%= role_dates(role) %></span>
+            </div>
+            <div class="text-sm text-stone-500"><%= role.company %></div>
+          <% end %>
+          <%= render "shared/tags", tags: role.tag_list %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<% if @projects.any? %>
+  <section class="mt-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Projects</h2>
+    <div class="mt-3 space-y-3">
+      <% @projects.each do |project| %>
+        <%= link_to project_path(project), class: "block rounded-lg border border-stone-200 bg-white p-4 hover:border-stone-300" do %>
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="font-medium"><%= project.title %></span>
+            <span class="shrink-0 text-xs text-stone-400"><%= project.status %></span>
+          </div>
+          <p class="mt-1 text-sm text-stone-600">
+            <%= project.summary.presence || truncate(project.body, length: 160) %>
+          </p>
+        <% end %>
+      <% end %>
+    </div>
+  </section>
+<% end %>
+
+<% if @posts.any? %>
+  <section class="mt-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Writing</h2>
+    <ul class="mt-3 divide-y divide-stone-200">
+      <% @posts.each do |post| %>
+        <li>
+          <%= link_to post_path(post), class: "block py-3" do %>
+            <span class="font-medium"><%= post.title %></span>
+            <span class="ml-2 text-xs text-stone-400"><%= post.published_at&.strftime("%b %d, %Y") %></span>
+            <span class="block text-sm text-stone-500"><%= post.summary.presence %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ul>
+  </section>
+<% end %>
+
+<% if @taxonomies.any? %>
+  <section class="mt-10">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Taxonomies</h2>
+    <div class="mt-3 flex flex-wrap gap-2">
+      <% @taxonomies.each do |taxonomy| %>
+        <%= link_to taxonomy.name, taxonomy_tags_path(taxonomy.slug),
+              class: "rounded-full bg-stone-100 px-3 py-1 text-xs text-stone-600 hover:bg-stone-200" %>
+      <% end %>
+    </div>
+  </section>
+<% end %>

@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@layer components {
+  .prose {
+    @apply leading-relaxed text-stone-700;
+  }
+  .prose h1 {
+    @apply mb-4 text-2xl font-bold text-stone-900;
+  }
+  .prose h2 {
+    @apply mb-3 mt-8 text-xl font-semibold text-stone-900;
+  }
+  .prose h3 {
+    @apply mb-2 mt-6 text-lg font-semibold text-stone-900;
+  }
+  .prose p {
+    @apply mb-4;
+  }
+  .prose ul {
+    @apply mb-4 list-disc space-y-1 pl-6;
+  }
+  .prose ol {
+    @apply mb-4 list-decimal space-y-1 pl-6;
+  }
+  .prose a {
+    @apply text-blue-600 underline;
+  }
+  .prose code {
+    @apply rounded bg-stone-100 px-1 py-0.5 text-sm;
+  }
+  .prose pre {
+    @apply mb-4 overflow-x-auto rounded-lg bg-stone-900 p-4 text-sm text-stone-100;
+  }
+  .prose pre code {
+    @apply bg-transparent px-0 py-0 text-stone-100;
+  }
+  .prose blockquote {
+    @apply mb-4 border-l-4 border-stone-300 pl-4 italic text-stone-500;
+  }
+  .prose table {
+    @apply mb-4 w-full border-collapse;
+  }
+  .prose th,
+  .prose td {
+    @apply border border-stone-200 px-3 py-2 text-left;
+  }
+  .prose hr {
+    @apply my-8 border-stone-200;
+  }
+}

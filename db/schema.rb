@@ -1,0 +1,101 @@
+# This file is auto-generated from the current state of the database. Instead
+# of editing this file, please use the migrations feature of Active Record to
+# incrementally modify your database, and then regenerate this schema definition.
+#
+# This file is the source Rails uses to define your schema when running `bin/rails
+# db:schema:load`. When creating a new database, `bin/rails db:schema:load` tends to
+# be faster and is potentially less error prone than running all of your
+# migrations from scratch. Old migrations may fail to apply correctly if those
+# migrations use external dependencies or application code.
+#
+# It's strongly recommended that you check this file into your version control system.
+
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_000007) do
+  create_table "generated_resumes", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.string "focus"
+    t.string "model"
+    t.text "params"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+  end
+
+  create_table "posts", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "published_at"
+    t.string "slug", null: false
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["published_at"], name: "index_posts_on_published_at"
+    t.index ["slug"], name: "index_posts_on_slug", unique: true
+  end
+
+  create_table "projects", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.date "ended_at"
+    t.string "slug", null: false
+    t.date "started_at"
+    t.string "status", default: "active", null: false
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.string "url"
+    t.index ["slug"], name: "index_projects_on_slug", unique: true
+    t.index ["started_at"], name: "index_projects_on_started_at"
+  end
+
+  create_table "roles", force: :cascade do |t|
+    t.text "body"
+    t.string "company", null: false
+    t.datetime "created_at", null: false
+    t.date "end_date"
+    t.string "slug", null: false
+    t.date "start_date"
+    t.text "summary"
+    t.string "title", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company", "title"], name: "index_roles_on_company_and_title"
+    t.index ["slug"], name: "index_roles_on_slug", unique: true
+  end
+
+  create_table "taggings", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.integer "tag_id", null: false
+    t.integer "taggable_id", null: false
+    t.string "taggable_type", null: false
+    t.datetime "updated_at", null: false
+    t.index ["tag_id", "taggable_type", "taggable_id"], name: "index_taggings_on_tag_and_taggable", unique: true
+    t.index ["tag_id"], name: "index_taggings_on_tag_id"
+    t.index ["taggable_type", "taggable_id"], name: "index_taggings_on_taggable"
+    t.index ["taggable_type", "taggable_id"], name: "index_taggings_on_taggable_type_and_taggable_id"
+  end
+
+  create_table "tags", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.integer "taxonomy_id", null: false
+    t.datetime "updated_at", null: false
+    t.index ["taxonomy_id", "name"], name: "index_tags_on_taxonomy_id_and_name", unique: true
+    t.index ["taxonomy_id", "slug"], name: "index_tags_on_taxonomy_id_and_slug", unique: true
+    t.index ["taxonomy_id"], name: "index_tags_on_taxonomy_id"
+  end
+
+  create_table "taxonomies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.string "name", null: false
+    t.string "slug", null: false
+    t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_taxonomies_on_name", unique: true
+    t.index ["slug"], name: "index_taxonomies_on_slug", unique: true
+  end
+
+  add_foreign_key "taggings", "tags"
+  add_foreign_key "tags", "taxonomies"
+end

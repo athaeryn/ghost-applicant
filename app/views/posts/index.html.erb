@@ -1,0 +1,22 @@
+<% content_for :title, "Posts" %>
+
+<h1 class="text-2xl font-bold">Posts</h1>
+
+<% if @posts.any? %>
+  <ul class="mt-6 divide-y divide-stone-200">
+    <% @posts.each do |post| %>
+      <li class="py-4">
+        <%= link_to post_path(post) do %>
+          <span class="font-medium"><%= post.title %></span>
+          <span class="ml-2 text-xs text-stone-400"><%= post.published_at&.strftime("%b %d, %Y") %></span>
+        <% end %>
+        <p class="mt-1 text-sm text-stone-600">
+          <%= post.summary.presence || truncate(post.body, length: 180) %>
+        </p>
+        <%= render "shared/tags", tags: post.tag_list %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p class="mt-6 text-stone-500">No published posts yet.</p>
+<% end %>

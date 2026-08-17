@@ -1,2 +1,27 @@
-node_modules
+# Rails-specific
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+
+/storage/*
+!/storage/.keep
+
+/tmp/storage/*
+!/tmp/storage/.keep
+
+/public/assets
+
+# Node
+node_modules/
+
+# Credentials
+/config/master.key
+/config/credentials/*.key
+
+# Tailwind build output (generated)
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
+# Legacy workspace converter output
 ingest/converted/

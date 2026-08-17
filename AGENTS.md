@@ -1,52 +1,46 @@
-# Ghost Applicant
+# Ghost Applicant — agent instructions
 
-This repo is a resume/cover-letter tailoring workspace driven by opencode.
+A personal portfolio/blog Rails app whose content is authored via a built-in MCP
+server. Resumes are generated from the same facts by a local LM Studio model.
 
-## What it is
+## Running commands
 
-A collection of markdown documents that capture your real, verifiable work
-experience (the **knowledge base**), plus a per-job workflow that turns a job
-description into a tailored resume and cover letter draft. Everything is
-grounded in facts from the knowledge base — nothing invented.
+Everything runs through Docker:
 
-## Layout
+- Start: `docker compose up -d` (site at http://localhost:3000, MCP at /mcp)
+- Rails runner: `docker compose run --rm app bin/rails <task>`
+- Tests: `docker compose run --rm app bin/rails test`
+- Lint: `docker compose run --rm app bin/rubocop`
+- Logs: `docker compose logs -f app`
 
-- `opencode.json` — opencode config (do not break it)
-- `.opencode/skills/resume/SKILL.md` — THE workflow rules. Read and follow it.
-- `.opencode/skills/ingest/SKILL.md` — ingesting documents and deriving voice
-- `.opencode/commands/kb.md` — `/kb` command: build or update the KB
-- `.opencode/commands/ingest.md` — `/ingest` command: add docs & learn voice
-- `.opencode/commands/job.md` — `/job` command: tailor for a specific opening
-- `knowledge/` — the source-of-truth knowledge base (see below)
-- `jobs/` — one folder per job opening
-- `ingest/` — drop raw documents here (PDFs, docx, etc.); `node
-  scripts/convert-ingest.mjs` converts them to markdown in `ingest/converted/`
-- `scripts/convert-ingest.mjs` — standalone PDF/docx→markdown converter used
-  when the `markitdown` MCP tool isn't loaded in an opencode session
+SQLite lives in `storage/` on the host; migrations in `db/migrate/`, schema in
+`db/schema.rb`.
 
-## The knowledge base (`knowledge/`)
+## Domain
 
-Current shape (adjust if the skill instructs otherwise):
+- `Post`, `Project`, `Role` are the content records (all have Markdown bodies
+  and slugs). `Post#published_at` controls visibility.
+- Tagging is `Taxonomy` → `Tag` → polymorphic `Tagging`. All tagged records
+  include `app/models/concerns/taggable.rb` (`add_tags`, `replace_tags`,
+  `remove_tag`, `tag_list`). Labels are `taxonomy:name` strings; both taxonomies
+  and tags are created on demand. Never hard-code a fixed tag catalog.
+- `GeneratedResume` persists resume output from `ResumeGenerator` /
+  `LmStudioClient` (OpenAI-compatible, configured by `LM_STUDIO_BASE_URL` /
+  `LM_STUDIO_MODEL`). Facts come only from the DB — never invent content.
 
-- `knowledge/_profile.md` — who you are, target roles, preferences, tone/voice
-- `knowledge/skills.md` — technical + soft skills, tools, domain expertise
-- `knowledge/letters.md` — voice/letter patterns distilled from your samples
-- `knowledge/roles/<company>-<role>.md` — one file per role, structured facts
-- `knowledge/samples/cover-letters/<target>.md` — your past cover letters (voice corpus)
-- `knowledge/case-studies/<slug>.md` — your detailed written work (facts + style)
+## MCP surface
 
-## Ground rules
+`config/initializers/mcp.rb` assembles `MCP_SERVER`; tool classes live in
+`app/mcp/tools/`. The transport is mounted at `/mcp` in `config/routes.rb` and
+uses the official `mcp` SDK (streamable HTTP). If you add a tool, register it in
+the initializer and add a case to `test/mcp/tools_test.rb`. Shared serializers /
+queries live in `app/mcp/mcp_support.rb`.
 
-1. **Every resume/letter claim must come from the KB** — reword, reframe, and
-   select from real facts. Never fabricate skills, employers, titles, dates, or
-   metrics. If something is missing or ambiguous, ask the user to clarify
-   before writing it.
-2. Prefer asking questions over guessing when the goal is a shippable document.
-3. Keep the KB tidy: one role per file, consistent sections. Frontmatter
-   (company, role, dates, location) at the top.
+## Working here
 
-## Workflow
-
-- To grow or edit the KB: run `/kb` (or just chat — the resume skill auto-triggers).
-- To ingest a past letter or case study and learn your voice: run `/ingest`.
-- To tailor for a job: run `/job <url-or-description>`.
+- Ruby 3.4, Rails 8.1, Minitest (run via `bin/rails test`), Tailwind v4
+  (`bin/dev` runs the server + CSS watcher; tests pre-build Tailwind).
+- Mind the single-process constraint documented in the SDK: the MCP transport
+  keeps session state in memory, so Puma runs with fewer workers locally.
+- `legacy/` holds the pre-Rails workspace; the old `knowledge/` content should
+  be migrated into real records through the MCP tools, not duplicated.

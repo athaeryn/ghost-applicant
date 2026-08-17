@@ -1,0 +1,22 @@
+<% content_for :title, "History" %>
+
+<h1 class="text-2xl font-bold">Work history</h1>
+
+<% if @roles.any? %>
+  <ul class="mt-6 divide-y divide-stone-200">
+    <% @roles.each do |role| %>
+      <li class="py-4">
+        <%= link_to role_path(role) do %>
+          <div class="flex items-baseline justify-between gap-2">
+            <span class="font-medium"><%= role.title %>, <%= role.company %></span>
+            <span class="shrink-0 text-sm text-stone-400"><%= role_dates(role) %></span>
+          </div>
+        <% end %>
+        <p class="mt-1 text-sm text-stone-600"><%= role.summary %></p>
+        <%= render "shared/tags", tags: role.tag_list %>
+      </li>
+    <% end %>
+  </ul>
+<% else %>
+  <p class="mt-6 text-stone-500">No roles recorded yet.</p>
+<% end %>

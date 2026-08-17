@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    command: ./bin/dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - bundle:/bundle
+    environment:
+      RAILS_ENV: development
+      LM_STUDIO_BASE_URL: ${LM_STUDIO_BASE_URL:-http://host.docker.internal:1234}
+      LM_STUDIO_MODEL: ${LM_STUDIO_MODEL:-}
+    stdin_open: true
+    tty: true
+
+volumes:
+  bundle:

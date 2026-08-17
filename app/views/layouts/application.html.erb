@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Portfolio" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="<%= content_for(:description) %>">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <%= stylesheet_link_tag "tailwind", "data-turbo-track": "reload" %>
+  </head>
+
+  <body class="bg-stone-50 text-stone-900 antialiased">
+    <header class="border-b border-stone-200 bg-white">
+      <div class="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
+        <a href="/" class="text-lg font-semibold tracking-tight">Example<span class="text-stone-400">·dev</span></a>
+        <nav class="flex gap-4 text-sm text-stone-600">
+          <%= link_to "Posts", posts_path, class: "hover:text-stone-900" %>
+          <%= link_to "Projects", projects_path, class: "hover:text-stone-900" %>
+          <%= link_to "History", roles_path, class: "hover:text-stone-900" %>
+        </nav>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-3xl px-4 py-10">
+      <%= yield %>
+    </main>
+
+    <footer class="border-t border-stone-200 bg-white">
+      <div class="mx-auto max-w-3xl px-4 py-6 text-xs text-stone-400">
+        Written entirely from this repo — content and wiring supplied over the built-in MCP server.
+      </div>
+    </footer>
+  </body>
+</html>

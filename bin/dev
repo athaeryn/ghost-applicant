@@ -1,0 +1,5 @@
+#!/usr/bin/env ruby
+# Runs the Rails server together with the Tailwind CSS watcher.
+warning = Process.spawn("bin/rails", "tailwindcss:watch", out: :err, err: :err)
+Process.detach(warning)
+exec "./bin/rails", "server", "-b", "0.0.0.0", *ARGV

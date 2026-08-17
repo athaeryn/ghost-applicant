@@ -1,0 +1,9 @@
+.git
+.idea
+.vscode
+legacy
+tmp
+log
+storage
+node_modules
+public/assets
