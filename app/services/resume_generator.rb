@@ -29,7 +29,7 @@ class ResumeGenerator
   # description is fed to the model alongside the fact base and any writing
   # guidance. Persisting the draft is the caller's job.
   def generate_for_application(application, focus: nil, include_projects: true, include_roles: true)
-    facts = build_fact_sheet(include_projects: include_projects, include_roles: include_roles)
+    facts = build_fact_sheet(include_projects: include_projects, include_roles: include_roles, compact: true)
     prompt = build_application_prompt(application, facts, focus: focus)
 
     @client.chat(
@@ -74,10 +74,11 @@ class ResumeGenerator
   PROMPT
 
   # Builds a fact sheet for the generator; also used when composing prompts.
-  def build_fact_sheet(include_projects:, include_roles:)
+  # compact: true clips role/project bodies to fit small local-model contexts.
+  def build_fact_sheet(include_projects:, include_roles:, compact: false)
     sections = []
-    sections << "## Roles\n\n" + roles_section if include_roles
-    sections << "## Projects\n\n" + projects_section if include_projects
+    sections << "## Roles\n\n" + roles_section(compact: compact) if include_roles
+    sections << "## Projects\n\n" + projects_section(compact: compact) if include_projects
     sections << "## Skills (from tags)\n\n" + skills_section
     sections.compact.join("\n")
   end
@@ -92,30 +93,34 @@ class ResumeGenerator
 
     meta_posts.map do |post|
       labels = post.tag_list.select { |t| t.start_with?("meta:") }.join(", ")
-      "### #{post.title} (#{labels})\n\n#{post.body}"
+      "### #{post.title} (#{labels})\n\n#{clip(post.body, 500)}"
     end.join("\n\n")
   end
 
   private
 
-  def roles_section
+  def clip(text, max_chars)
+    text.to_s.truncate(max_chars, omission: "…")
+  end
+
+  def roles_section(compact: false)
     Role.chronological.map do |role|
       dates = [ role.start_date, role.end_date ].compact.map(&:iso8601).join(" to ")
       <<~TEXT
         ### #{role.title} at #{role.company} (#{dates})
-        #{role.summary}
-        #{role.body}
+        #{compact ? clip(role.summary, 250) : role.summary}
+        #{compact ? clip(role.body, 600) : role.body}
         Tags: #{role.tag_list.join(", ")}
       TEXT
     end.join("\n")
   end
 
-  def projects_section
+  def projects_section(compact: false)
     Project.featured.map do |project|
       <<~TEXT
         ### #{project.title} (#{project.status})
-        #{project.summary}
-        #{project.body}
+        #{compact ? clip(project.summary, 200) : project.summary}
+        #{compact ? clip(project.body, 400) : project.body}
         Tags: #{project.tag_list.join(", ")}
       TEXT
     end.join("\n")
@@ -149,7 +154,7 @@ class ResumeGenerator
 
       The job posting for this application:
 
-      #{application.description}
+      #{clip(application.description, 1800)}
 
       Here is everything currently known about the candidate:
 

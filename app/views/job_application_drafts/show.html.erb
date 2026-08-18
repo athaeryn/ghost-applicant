@@ -1,0 +1,25 @@
+<% content_for :title, "#{@draft.kind.titleize} draft for #{@job_application.label}" %>
+
+<article>
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-bold"><%= @draft.kind.titleize %> draft</h1>
+      <p class="mt-1 text-sm text-stone-500">
+        <%= @job_application.label %> · <%= @draft.created_at.strftime("%B %d, %Y") %>
+        <% if @draft.label.present? %><span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600"><%= @draft.label %></span><% end %>
+      </p>
+    </div>
+    <%= link_to "Back to application", job_application_path(@job_application),
+          class: "shrink-0 text-sm text-stone-400 underline hover:text-stone-600" %>
+  </div>
+
+  <% index = @drafts.index(@draft) %>
+  <% if index && @drafts.length > 1 %>
+    <div class="mt-3 flex gap-3 text-sm text-stone-500">
+      <%= link_to "← Older", job_application_draft_path(@job_application, @drafts[index - 1]), class: "underline" if index > 0 %>
+      <%= link_to "Newer →", job_application_draft_path(@job_application, @drafts[index + 1]), class: "underline" if @drafts[index + 1] %>
+    </div>
+  <% end %>
+
+  <div class="prose mt-6"><%= markdown(@draft.body) %></div>
+</article>

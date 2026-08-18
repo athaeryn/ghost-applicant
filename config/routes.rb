@@ -5,6 +5,7 @@ Rails.application.routes.draw do
   resources :projects, only: %i[index show]
   resources :roles, only: %i[index show]
   resources :job_applications, only: %i[index show] do
+    resources :drafts, only: %i[show], controller: "job_application_drafts"
     member do
       post :add_tag
       delete :remove_tag

@@ -33,7 +33,10 @@
   <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Drafts (<%= @job_application.application_drafts.count %>)</h2>
   <ul class="mt-2 space-y-1 text-sm text-stone-600">
     <% @job_application.application_drafts.chronological.each do |draft| %>
-      <li><%= draft.kind.titleize %><%= " (#{draft.label})" if draft.label.present? %> — saved <%= draft.created_at.strftime("%b %d, %Y") %></li>
+      <li>
+        <%= link_to "#{draft.kind.titleize}#{" (#{draft.label})" if draft.label.present?} — saved #{draft.created_at.strftime("%b %d, %Y")}",
+              job_application_draft_path(@job_application, draft), class: "underline" %>
+      </li>
     <% end %>
   </ul>
 </div>

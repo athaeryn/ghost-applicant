@@ -6,12 +6,13 @@ class LmStudioUnavailableError < LmStudioError; end
 class LmStudioClient
   DEFAULT_BASE_URL = "http://localhost:1234"
   CHAT_ENDPOINT = "/v1/chat/completions"
+  MODELS_ENDPOINT = "/v1/models"
 
   attr_reader :base_url, :model
 
   def initialize(base_url: ENV.fetch("LM_STUDIO_BASE_URL", DEFAULT_BASE_URL), model: nil)
     @base_url = base_url
-    @model = model || ENV["LM_STUDIO_MODEL"].presence
+    @model = model.presence || ENV["LM_STUDIO_MODEL"].presence || default_model
   end
 
   def chat(messages, temperature: 0.7, max_tokens: 2048)
@@ -22,6 +23,19 @@ class LmStudioClient
   end
 
   private
+
+  # The running model id, detected from the OpenAI-compatible /v1/models
+  # endpoint. Falls back to nil if LM Studio is unreachable.
+  def default_model
+    @default_model ||= begin
+      uri = URI.join("#{base_url.chomp("/")}/", MODELS_ENDPOINT)
+      request = Net::HTTP::Get.new(uri)
+      request["Accept"] = "application/json"
+      JSON.parse(http_request(request).body).dig("data", 0, "id")
+    rescue StandardError
+      nil
+    end
+  end
 
   def build_request(messages, temperature, max_tokens)
     uri = URI.join("#{base_url.chomp("/")}/", CHAT_ENDPOINT)
