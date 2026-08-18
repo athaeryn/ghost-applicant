@@ -12,8 +12,8 @@ class GenerateResumeTool < MCP::Tool
     required: []
   )
 
-  def self.call(focus: nil, include_projects: nil, include_roles: nil, model: nil, server_context: nil)
-    generator = ResumeGenerator.new(client: LmStudioClient.new(model: model))
+  def self.call(focus: nil, include_projects: nil, include_roles: nil, model: nil, client: nil, server_context: nil)
+    generator = ResumeGenerator.new(client: client || LmStudioClient.new(model: model))
     resume = generator.generate(
       focus: focus,
       include_projects: include_projects != false,

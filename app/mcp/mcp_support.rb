@@ -93,6 +93,18 @@ module McpSupport
     }
   end
 
+  def post_detail(p)
+    post(p).merge(body: p.body.to_s)
+  end
+
+  def project_detail(p)
+    project(p).merge(body: p.body.to_s)
+  end
+
+  def role_detail(r)
+    role(r).merge(body: r.body.to_s)
+  end
+
   def resume(g)
     {
       id: g.id, title: g.title, focus: g.focus, model: g.model,

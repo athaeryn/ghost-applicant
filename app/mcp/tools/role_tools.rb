@@ -18,6 +18,23 @@ class ListRolesTool < MCP::Tool
   end
 end
 
+class GetRoleTool < MCP::Tool
+  tool_name "get_role"
+  title "Get Role"
+  description "Returns a single role by id or slug, including its full Markdown body and associations."
+  input_schema(
+    properties: { id: { type: "string", description: "Role id or slug" } },
+    required: [ "id" ]
+  )
+
+  def self.call(id:, server_context: nil)
+    role = McpSupport.find_record(Role.all, id)
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: role not found" } ]) unless role
+
+    MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(McpSupport.role_detail(role)) } ])
+  end
+end
+
 class CreateRoleTool < MCP::Tool
   tool_name "create_role"
   title "Create Role"

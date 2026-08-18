@@ -20,6 +20,23 @@ class ListPostsTool < MCP::Tool
   end
 end
 
+class GetPostTool < MCP::Tool
+  tool_name "get_post"
+  title "Get Blog Post"
+  description "Returns a single blog post by id or slug, including its full Markdown body and associations."
+  input_schema(
+    properties: { id: { type: "string", description: "Post id or slug" } },
+    required: [ "id" ]
+  )
+
+  def self.call(id:, server_context: nil)
+    post = McpSupport.find_record(Post.all, id)
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: post not found" } ]) unless post
+
+    MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(McpSupport.post_detail(post)) } ])
+  end
+end
+
 class CreatePostTool < MCP::Tool
   tool_name "create_post"
   title "Create Blog Post"

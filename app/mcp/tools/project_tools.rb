@@ -20,6 +20,23 @@ class ListProjectsTool < MCP::Tool
   end
 end
 
+class GetProjectTool < MCP::Tool
+  tool_name "get_project"
+  title "Get Project"
+  description "Returns a single project by id or slug, including its full Markdown body, role, and associated posts."
+  input_schema(
+    properties: { id: { type: "string", description: "Project id or slug" } },
+    required: [ "id" ]
+  )
+
+  def self.call(id:, server_context: nil)
+    project = McpSupport.find_record(Project.all, id)
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: project not found" } ]) unless project
+
+    MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(McpSupport.project_detail(project)) } ])
+  end
+end
+
 class CreateProjectTool < MCP::Tool
   tool_name "create_project"
   title "Create Project"

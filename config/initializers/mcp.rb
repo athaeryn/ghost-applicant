@@ -2,6 +2,7 @@
 # The StreamableHTTPTransport keeps session state in memory, so run a
 # single-process server (Puma default in development).
 require "mcp"
+require_dependency Rails.root.join("app/services/lm_studio_client").to_s
 
 %w[
   taxonomy_tools
@@ -33,9 +34,9 @@ MCP_SERVER = MCP::Server.new(
   tools: [
     ListTaxonomiesTool, CreateTaxonomyTool,
     ListTagsTool, CreateTagTool,
-    ListPostsTool, CreatePostTool, UpdatePostTool, DeletePostTool, PublishPostTool,
-    ListProjectsTool, CreateProjectTool, UpdateProjectTool, DeleteProjectTool,
-    ListRolesTool, CreateRoleTool, UpdateRoleTool, DeleteRoleTool,
+    ListPostsTool, GetPostTool, CreatePostTool, UpdatePostTool, DeletePostTool, PublishPostTool,
+    ListProjectsTool, GetProjectTool, CreateProjectTool, UpdateProjectTool, DeleteProjectTool,
+    ListRolesTool, GetRoleTool, CreateRoleTool, UpdateRoleTool, DeleteRoleTool,
     TagRecordTool, UntagRecordTool, RecordTagsTool,
     GenerateResumeTool, ListResumesTool
   ]

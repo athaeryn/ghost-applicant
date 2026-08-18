@@ -8,7 +8,7 @@ class ResumeGenerator
   # Returns a persisted GeneratedResume.
   def generate(focus: nil, include_projects: true, include_roles: true)
     facts = build_fact_sheet(include_projects: include_projects, include_roles: include_roles)
-    prompt = build_prompt(facts, focus: focus)
+    prompt = build_prompt(facts, focus: focus, guidance: writing_guidance)
 
     content = @client.chat(
       [ { role: "system", content: SYSTEM_PROMPT },
@@ -35,12 +35,27 @@ class ResumeGenerator
     - Where a job description is implied by a focus, emphasize the most relevant facts.
     - If important information is missing, say so with a "Note:" line instead of guessing.
     - Keep bullets concise and outcome-oriented, based strictly on the facts.
+    - If writing guidance is included, follow it: match that voice and tone exactly.
 
     Structure: a short summary, then Skills (grouped by the given taxonomies),
     then Work Experience (roles with dates and bullets), then Projects.
   PROMPT
 
   private
+
+  # Published posts tagged under the "meta" taxonomy (e.g. meta:style-guide,
+  # meta:bio) become writing guidance for the generator.
+  def writing_guidance
+    meta_posts = Post.published.distinct
+      .joins(taggings: { tag: :taxonomy })
+      .where(taxonomies: { slug: "meta" })
+      .order(:title)
+
+    meta_posts.map do |post|
+      labels = post.tag_list.select { |t| t.start_with?("meta:") }.join(", ")
+      "### #{post.title} (#{labels})\n\n#{post.body}"
+    end.join("\n\n")
+  end
 
   def build_fact_sheet(include_projects:, include_roles:)
     sections = []
@@ -80,14 +95,16 @@ class ResumeGenerator
     tags.map { |taxonomy, ts| "- #{taxonomy}: #{ts.map(&:name).join(", ")}" }.join("\n")
   end
 
-  def build_prompt(facts, focus:)
+  def build_prompt(facts, focus:, guidance: "")
     directive = focus.presence ? "Target role/focus: #{focus}." : "General resume."
-    <<~PROMPT
+    prompt = <<~PROMPT
       #{directive}
 
       Here is everything currently known:
 
       #{facts}
     PROMPT
+    prompt += "\n\nWriting guidance:\n\n#{guidance}" if guidance.present?
+    prompt
   end
 end

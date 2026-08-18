@@ -7,6 +7,13 @@
       <%= link_to "Edit in admin", edit_admin_project_path(@project), class: "underline hover:text-stone-600" %>
     </div>
   </div>
+
+  <% if @project.role.present? %>
+    <p class="mt-2 text-sm text-stone-600">
+      &commat; <%= link_to @project.role.company, role_path(@project.role), class: "underline" %>
+    </p>
+  <% end %>
+
   <div class="mt-2 flex flex-wrap items-center gap-2 text-sm text-stone-400">
     <span><%= @project.status %></span>
     <% dates = [@project.started_at, @project.ended_at].compact.presence %>
@@ -17,12 +24,6 @@
   </div>
   <%= render "shared/tags", tags: @project.tag_list %>
 
-  <% if @project.role.present? %>
-    <p class="mt-2 text-sm text-stone-600">
-      At <%= link_to @project.role.display_name, role_path(@project.role), class: "underline" %>
-    </p>
-  <% end %>
-
   <% if @project.posts.any? %>
     <p class="mt-2 text-sm text-stone-600">
       <span class="text-stone-400">Mentioned in:</span>
@@ -31,6 +32,12 @@
       <% end %>
     </p>
   <% end %>
+
+  <% if @project.summary.present? %>
+    <div class="prose mt-6"><%= markdown(@project.summary) %></div>
+    <hr />
+  <% end %>
+
 
   <div class="prose mt-6"><%= markdown(@project.body) %></div>
 </article>

@@ -99,8 +99,39 @@ class McpToolsTest < ActiveSupport::TestCase
     assert_nil reword["role_id"]
   end
 
+  test "read tools return full markdown bodies" do
+    created = CreatePostTool.call(title: "Deep dive", body: "First paragraph.\n\n## Section\nMore.", tags: [ "meta:style-guide" ])
+    post = JSON.parse(tool_text(created))
+    fetched = JSON.parse(tool_text(GetPostTool.call(id: post["id"])))
+    assert_equal "Deep dive", fetched["title"]
+    assert_includes fetched["body"], "## Section"
+    assert_equal [ "meta:style-guide" ], fetched["tags"]
+
+    project = JSON.parse(tool_text(CreateProjectTool.call(title: "Readme", body: "**bold** body")))
+    assert_equal "**bold** body", JSON.parse(tool_text(GetProjectTool.call(id: project["id"])))["body"]
+
+    role = JSON.parse(tool_text(CreateRoleTool.call(title: "Eng", company: "Acme", start_date: "2021-01-01", body: "role notes")))
+    assert_equal "role notes", JSON.parse(tool_text(GetRoleTool.call(id: role["id"])))["body"]
+
+    assert_match(/not found/, tool_text(GetPostTool.call(id: "missing")))
+  end
+
+  test "generate_resume persists output when LM Studio is reachable" do
+    fake = Object.new
+    def fake.model; nil; end
+    def fake.chat(*); "A clean, concise resume in Markdown."; end
+
+    data = JSON.parse(tool_text(GenerateResumeTool.call(client: fake)))
+    assert_includes data["generated"], "resume"
+    assert GeneratedResume.exists?(id: data["id"])
+  end
+
   test "generate_resume fails gracefully when LM Studio is down" do
-    response = GenerateResumeTool.call
+    down = Object.new
+    def down.model; nil; end
+    def down.chat(*); raise LmStudioUnavailableError, "LM Studio is not reachable for this test"; end
+
+    response = GenerateResumeTool.call(client: down)
     assert_match(/Error/, tool_text(response))
   end
 end

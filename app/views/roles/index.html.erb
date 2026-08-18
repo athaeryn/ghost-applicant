@@ -13,7 +13,7 @@
       <li class="py-4">
         <%= link_to role_path(role) do %>
           <div class="flex items-baseline justify-between gap-2">
-            <span class="font-medium"><%= role.title %>, <%= role.company %></span>
+            <span class="font-medium"><%= role.title %> &mdash; <%= role.company %></span>
             <span class="shrink-0 text-sm text-stone-400"><%= role_dates(role) %></span>
           </div>
         <% end %>

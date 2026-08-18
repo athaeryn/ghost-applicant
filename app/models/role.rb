@@ -16,7 +16,7 @@ class Role < ApplicationRecord
   end
 
   def display_name
-    "#{title} at #{company}"
+    "#{title} — #{company}"
   end
 
   private
