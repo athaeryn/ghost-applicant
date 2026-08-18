@@ -1,6 +1,11 @@
 <% content_for :title, "Posts" %>
 
-<h1 class="text-2xl font-bold">Posts</h1>
+<div class="flex items-start justify-between gap-4">
+  <h1 class="text-2xl font-bold">Posts</h1>
+  <div class="flex shrink-0 items-center gap-3 text-sm text-stone-400">
+    <%= link_to "New post", new_admin_post_path, class: "underline hover:text-stone-600" %>
+  </div>
+</div>
 
 <% if @posts.any? %>
   <ul class="mt-6 divide-y divide-stone-200">
