@@ -160,4 +160,23 @@ class McpToolsTest < ActiveSupport::TestCase
     response = GenerateResumeTool.call(client: down)
     assert_match(/Error/, tool_text(response))
   end
+
+  test "draft_resume saves a tailored resume onto the job application" do
+    application = JobApplication.create!(title: "WordPress Developer", company: "Gemini", description: "We need WordPress and PHP experience.")
+    fake = Object.new
+    def fake.model; "test-model"; end
+    def fake.chat(messages, **); "## Summary\na tailored resume for the posting."; end
+
+    response = DraftResumeTool.call(job_application_id: application.id, client: fake)
+    text = tool_text(response)
+    assert_includes text, "Resume draft saved"
+    assert_includes text, "## Summary"
+
+    draft = application.reload.application_drafts.resumes.first
+    assert_equal "test-model", draft.label
+    assert_includes draft.body, "tailored"
+
+    missing = DraftResumeTool.call(job_application_id: 999_999)
+    assert_match(/not found/, tool_text(missing))
+  end
 end

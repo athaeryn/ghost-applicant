@@ -40,6 +40,6 @@ MCP_SERVER = MCP::Server.new(
     ListRolesTool, GetRoleTool, CreateRoleTool, UpdateRoleTool, DeleteRoleTool,
     ListJobApplicationsTool, GetJobApplicationTool, CreateJobApplicationTool, UpdateJobApplicationTool, DeleteJobApplicationTool,
     TagRecordTool, UntagRecordTool, RecordTagsTool,
-    GenerateResumeTool, ListResumesTool
+    GenerateResumeTool, ListResumesTool, DraftResumeTool
   ]
 )

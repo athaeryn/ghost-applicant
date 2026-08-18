@@ -41,3 +41,44 @@ class ListResumesTool < MCP::Tool
     MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(resumes.map { |r| McpSupport.resume(r) }) } ])
   end
 end
+
+class DraftResumeTool < MCP::Tool
+  tool_name "draft_resume"
+  title "Draft Tailored Resume"
+  description "Reads a stored job application (its pasted job description), the fact base (roles + projects + tagged skills), and any meta: writing guidance, then asks the local LM Studio model for a resume tailored to that posting. The result is saved as an ApplicationDraft (kind: resume) on the job application and returned."
+  input_schema(
+    properties: {
+      job_application_id: { type: "integer", description: "Id of the job application to tailor for" },
+      focus: { type: "string", description: "Optional emphasis beyond the job title" },
+      include_projects: { type: "boolean", description: "Include projects in the facts (default true)" },
+      include_roles: { type: "boolean", description: "Include roles in the facts (default true)" },
+      model: { type: "string", description: "Override the LM Studio model name" }
+    },
+    required: [ "job_application_id" ]
+  )
+
+  def self.call(job_application_id:, focus: nil, include_projects: nil, include_roles: nil, model: nil, client: nil, server_context: nil)
+    application = JobApplication.find_by(id: job_application_id.to_i)
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: job application not found" } ]) unless application
+
+    lm = client || LmStudioClient.new(model: model)
+    generator = ResumeGenerator.new(client: lm)
+    content = generator.generate_for_application(
+      application,
+      focus: focus,
+      include_projects: include_projects != false,
+      include_roles: include_roles != false
+    )
+
+    draft = application.application_drafts.create!(
+      kind: "resume",
+      label: [ lm.model.presence, "local" ].compact.first,
+      body: content
+    )
+    MCP::Tool::Response.new([ { type: "text", text: "Resume draft saved for '#{application.label}' (draft ##{draft.id}).\n\n#{content}" } ])
+  rescue LmStudioUnavailableError, LmStudioError => e
+    MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.message}" } ])
+  rescue ActiveRecord::RecordInvalid => e
+    MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.record.errors.full_messages.join("; ")}" } ])
+  end
+end
