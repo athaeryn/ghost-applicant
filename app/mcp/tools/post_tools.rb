@@ -23,20 +23,24 @@ end
 class CreatePostTool < MCP::Tool
   tool_name "create_post"
   title "Create Blog Post"
-  description "Creates a blog post. Body is Markdown. Optionally publish it immediately and attach tags as 'taxonomy:name' strings."
+description "Creates a blog post. Body is Markdown. Optionally publish it immediately, attach tags as 'taxonomy:name' strings, and link it to projects and/or roles by id or slug."
   input_schema(
     properties: {
       title: { type: "string", description: "Post title" },
       body: { type: "string", description: "Post body in Markdown" },
       summary: { type: "string", description: "One-line summary/excerpt" },
       published: { type: "boolean", description: "Publish immediately (default false)" },
-      tags: { type: "array", items: { type: "string" }, description: "List of 'taxonomy:name' labels" }
+      tags: { type: "array", items: { type: "string" }, description: "List of 'taxonomy:name' labels" },
+      project_ids: { type: "array", items: { type: "string" }, description: "Ids or slugs of projects to associate with this post" },
+      role_ids: { type: "array", items: { type: "string" }, description: "Ids or slugs of roles to associate with this post" }
     },
     required: %w[title body]
   )
 
-  def self.call(title:, body:, summary: nil, published: false, tags: nil, server_context: nil)
+  def self.call(title:, body:, summary: nil, published: false, tags: nil, project_ids: nil, role_ids: nil, server_context: nil)
     post = Post.create!(title: title, body: body, summary: summary, published_at: published ? Time.current : nil)
+    post.projects = McpSupport.resolve_records(Project.all, project_ids) if project_ids
+    post.roles = McpSupport.resolve_records(Role.all, role_ids) if role_ids
     post.add_tags(tags) if tags.present?
     MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(McpSupport.post(post)) } ])
   rescue ActiveRecord::RecordInvalid => e
@@ -47,7 +51,7 @@ end
 class UpdatePostTool < MCP::Tool
   tool_name "update_post"
   title "Update Blog Post"
-  description "Updates an existing post by id or slug. Only provided fields are changed."
+  description "Updates an existing post by id or slug. Only provided fields are changed; passing an empty array for project_ids/role_ids clears the associations."
   input_schema(
     properties: {
       id: { type: "string", description: "Post id or slug" },
@@ -55,12 +59,14 @@ class UpdatePostTool < MCP::Tool
       body: { type: "string", description: "New Markdown body" },
       summary: { type: "string", description: "New summary" },
       published: { type: "boolean", description: "Set publish state; true publishes now if not yet published" },
-      tags: { type: "array", items: { type: "string" }, description: "Replace all tags with this list of 'taxonomy:name' labels" }
+      tags: { type: "array", items: { type: "string" }, description: "Replace all tags with this list of 'taxonomy:name' labels" },
+      project_ids: { type: "array", items: { type: "string" }, description: "Replace the post's projects (ids or slugs); empty array clears" },
+      role_ids: { type: "array", items: { type: "string" }, description: "Replace the post's roles (ids or slugs); empty array clears" }
     },
     required: [ "id" ]
   )
 
-  def self.call(id:, title: nil, body: nil, summary: nil, published: nil, tags: nil, server_context: nil)
+  def self.call(id:, title: nil, body: nil, summary: nil, published: nil, tags: nil, project_ids: nil, role_ids: nil, server_context: nil)
     post = McpSupport.find_record(Post.all, id)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: post not found" } ]) unless post
 
@@ -72,6 +78,12 @@ class UpdatePostTool < MCP::Tool
     post.published_at = Time.current if published == true && post.published_at.blank?
     post.published_at = nil if published == false
     post.save!
+    if project_ids
+      post.projects = McpSupport.resolve_records(Project.all, project_ids)
+    end
+    if role_ids
+      post.roles = McpSupport.resolve_records(Role.all, role_ids)
+    end
     post.replace_tags(tags) if tags
     MCP::Tool::Response.new([ { type: "text", text: JSON.pretty_generate(McpSupport.post(post)) } ])
   rescue ActiveRecord::RecordInvalid => e

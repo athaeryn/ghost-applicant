@@ -17,6 +17,11 @@ module McpSupport
     end
   end
 
+  # Resolves an array of ids-or-slugs to records; unknown entries are dropped.
+  def resolve_records(scope, values)
+    Array(values).filter_map { |v| find_record(scope, v) }
+  end
+
   # "taxonomy:name" => ActiveRecord scope filtered to that tag.
   def with_tag(scope, label)
     taxonomy_name, _, tag_name = label.to_s.partition(":")
@@ -62,7 +67,8 @@ module McpSupport
       id: p.id, title: p.title, slug: p.slug, summary: p.summary,
       published: p.published?, published_at: fmt_time(p.published_at),
       created_at: fmt_time(p.created_at), updated_at: fmt_time(p.updated_at),
-      tags: p.tag_list
+      tags: p.tag_list,
+      project_ids: p.project_ids, role_ids: p.role_ids
     }
   end
 
@@ -70,6 +76,7 @@ module McpSupport
     {
       id: p.id, title: p.title, slug: p.slug, summary: p.summary,
       status: p.status, url: p.url,
+      role_id: p.role_id, post_ids: p.post_ids,
       started_at: fmt_date(p.started_at), ended_at: fmt_date(p.ended_at),
       created_at: fmt_time(p.created_at), updated_at: fmt_time(p.updated_at),
       tags: p.tag_list
@@ -81,7 +88,8 @@ module McpSupport
       id: r.id, title: r.title, company: r.company, slug: r.slug, summary: r.summary,
       start_date: fmt_date(r.start_date), end_date: fmt_date(r.end_date),
       created_at: fmt_time(r.created_at), updated_at: fmt_time(r.updated_at),
-      tags: r.tag_list
+      tags: r.tag_list,
+      post_ids: r.post_ids, project_ids: r.project_ids
     }
   end
 

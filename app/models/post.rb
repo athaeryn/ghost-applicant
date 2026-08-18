@@ -1,6 +1,9 @@
 class Post < ApplicationRecord
   include Taggable
 
+  has_and_belongs_to_many :projects
+  has_and_belongs_to_many :roles
+
   validates :title, :body, presence: true
   validates :slug, presence: true
 

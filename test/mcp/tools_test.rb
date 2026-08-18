@@ -65,7 +65,8 @@ class McpToolsTest < ActiveSupport::TestCase
   end
 
   test "like projects and roles via MCP" do
-    CreateRoleTool.call(title: "Engineer", company: "Acme", start_date: "2020-01-01", tags: [ "skill:ruby" ])
+    role_resp = CreateRoleTool.call(title: "Engineer", company: "Acme", start_date: "2020-01-01", tags: [ "skill:ruby" ])
+    role = JSON.parse(tool_text(role_resp))
     CreateProjectTool.call(title: "Widget", body: "w", status: "completed", tags: [ "tool:rails" ])
 
     roles = JSON.parse(tool_text(ListRolesTool.call))
@@ -74,6 +75,28 @@ class McpToolsTest < ActiveSupport::TestCase
 
     projects = JSON.parse(tool_text(ListProjectsTool.call(status: "completed")))
     assert_equal 1, projects.size
+
+    role_id = role["id"]
+    refute_nil role_id
+  end
+
+  test "link projects and roles to posts via MCP" do
+    role = JSON.parse(tool_text(CreateRoleTool.call(title: "Engineer", company: "Acme", start_date: "2020-01-01")))
+    project = JSON.parse(tool_text(CreateProjectTool.call(title: "Linked", body: "w", role: role["id"])))
+    assert_equal role["id"], project["role_id"]
+
+    post = JSON.parse(tool_text(CreatePostTool.call(
+      title: "Both", body: "b", project_ids: [ project["id"] ], role_ids: [ role["id"] ]
+    )))
+    assert_equal [ project["id"] ], post["project_ids"]
+    assert_equal [ role["id"] ], post["role_ids"]
+
+    cleared = JSON.parse(tool_text(UpdatePostTool.call(id: post["id"], project_ids: [], role_ids: [])))
+    assert_empty cleared["project_ids"]
+    assert_empty cleared["role_ids"]
+
+    reword = JSON.parse(tool_text(UpdateProjectTool.call(id: project["id"], role: "")))
+    assert_nil reword["role_id"]
   end
 
   test "generate_resume fails gracefully when LM Studio is down" do

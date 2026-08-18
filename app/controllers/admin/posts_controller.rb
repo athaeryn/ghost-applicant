@@ -9,8 +9,8 @@ class Admin::PostsController < Admin::BaseController
 
   def create
     @post = Post.new(post_params)
-    apply_published_toggle(@post)
     if @post.save
+      assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
       redirect_to admin_posts_path, notice: "Post created."
     else
@@ -26,6 +26,7 @@ class Admin::PostsController < Admin::BaseController
     @post = find_record(Post.all, params[:id])
     apply_published_toggle(@post)
     if @post.update(post_params)
+      assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
       redirect_to admin_posts_path, notice: "Post updated."
     else
@@ -43,6 +44,15 @@ class Admin::PostsController < Admin::BaseController
 
   def post_params
     params.require(:post).permit(:title, :summary, :body)
+  end
+
+  def assign_associations(post)
+    if params[:post].key?(:project_ids)
+      post.project_ids = params[:post][:project_ids].to_a.reject(&:blank?)
+    end
+    if params[:post].key?(:role_ids)
+      post.role_ids = params[:post][:role_ids].to_a.reject(&:blank?)
+    end
   end
 
   def apply_published_toggle(post)

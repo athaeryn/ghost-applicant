@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_000007) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_000010) do
   create_table "generated_resumes", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
@@ -33,10 +33,25 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000007) do
     t.index ["slug"], name: "index_posts_on_slug", unique: true
   end
 
+  create_table "posts_projects", id: false, force: :cascade do |t|
+    t.integer "post_id", null: false
+    t.integer "project_id", null: false
+    t.index ["post_id", "project_id"], name: "index_posts_projects_on_post_id_and_project_id", unique: true
+    t.index ["project_id", "post_id"], name: "index_posts_projects_on_project_id_and_post_id"
+  end
+
+  create_table "posts_roles", id: false, force: :cascade do |t|
+    t.integer "post_id", null: false
+    t.integer "role_id", null: false
+    t.index ["post_id", "role_id"], name: "index_posts_roles_on_post_id_and_role_id", unique: true
+    t.index ["role_id", "post_id"], name: "index_posts_roles_on_role_id_and_post_id"
+  end
+
   create_table "projects", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
     t.date "ended_at"
+    t.integer "role_id"
     t.string "slug", null: false
     t.date "started_at"
     t.string "status", default: "active", null: false
@@ -44,6 +59,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000007) do
     t.string "title", null: false
     t.datetime "updated_at", null: false
     t.string "url"
+    t.index ["role_id"], name: "index_projects_on_role_id"
     t.index ["slug"], name: "index_projects_on_slug", unique: true
     t.index ["started_at"], name: "index_projects_on_started_at"
   end
@@ -96,6 +112,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000007) do
     t.index ["slug"], name: "index_taxonomies_on_slug", unique: true
   end
 
+  add_foreign_key "projects", "roles"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tags", "taxonomies"
 end

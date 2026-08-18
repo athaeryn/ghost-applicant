@@ -59,6 +59,7 @@ project.update!(
   url: "https://github.com/example/ghost-applicant"
 )
 project.replace_tags([ "topic:jobs", "skill:ruby", "tool:rails", "tool:mcp", "topic:ai" ])
+project.update!(role: role)
 
 post = Post.find_or_initialize_by(slug: "welcome")
 post.update!(
@@ -76,3 +77,5 @@ post.update!(
   published_at: Time.current
 )
 post.replace_tags([ "topic:ai", "tool:mcp", "tool:rails" ])
+post.projects << project
+post.roles << role

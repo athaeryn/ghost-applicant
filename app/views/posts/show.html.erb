@@ -5,5 +5,26 @@
   <p class="mt-2 text-sm text-stone-400"><%= @post.published_at&.strftime("%B %d, %Y") %></p>
   <%= render "shared/tags", tags: @post.tag_list %>
 
+  <% if @post.projects.any? || @post.roles.any? %>
+    <div class="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-stone-600">
+      <% if @post.projects.any? %>
+        <div>
+          <span class="text-stone-400">Projects:</span>
+          <% @post.projects.each do |project| %>
+            <%= link_to project.title, project_path(project), class: "underline" %>
+          <% end %>
+        </div>
+      <% end %>
+      <% if @post.roles.any? %>
+        <div>
+          <span class="text-stone-400">Roles:</span>
+          <% @post.roles.each do |role| %>
+            <%= link_to role.display_name, role_path(role), class: "underline" %>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
   <div class="prose mt-6"><%= markdown(@post.body) %></div>
 </article>

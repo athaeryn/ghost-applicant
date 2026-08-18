@@ -5,6 +5,28 @@
   <p class="mt-2 text-sm text-stone-400"><%= role_dates(@role) %></p>
   <%= render "shared/tags", tags: @role.tag_list %>
 
+  <% if @role.projects.any? %>
+    <div class="mt-4">
+      <span class="text-sm text-stone-400">Projects:</span>
+      <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-600">
+        <% @role.projects.each do |project| %>
+          <%= link_to project.title, project_path(project), class: "underline" %>
+        <% end %>
+      </span>
+    </div>
+  <% end %>
+
+  <% if @role.posts.any? %>
+    <div class="mt-2">
+      <span class="text-sm text-stone-400">Posts:</span>
+      <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-600">
+        <% @role.posts.each do |post| %>
+          <%= link_to post.title, post_path(post), class: "underline" %>
+        <% end %>
+      </span>
+    </div>
+  <% end %>
+
   <% if @role.body.present? %>
     <div class="prose mt-6"><%= markdown(@role.body) %></div>
   <% elsif @role.summary.present? %>

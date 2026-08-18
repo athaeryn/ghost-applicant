@@ -1,6 +1,9 @@
 class Role < ApplicationRecord
   include Taggable
 
+  has_and_belongs_to_many :posts
+  has_many :projects, dependent: :nullify
+
   validates :title, :company, presence: true
   validates :slug, presence: true
 
@@ -10,6 +13,10 @@ class Role < ApplicationRecord
 
   def to_param
     slug
+  end
+
+  def display_name
+    "#{title} at #{company}"
   end
 
   private

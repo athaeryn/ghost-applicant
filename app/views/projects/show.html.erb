@@ -12,5 +12,20 @@
   </div>
   <%= render "shared/tags", tags: @project.tag_list %>
 
+  <% if @project.role.present? %>
+    <p class="mt-2 text-sm text-stone-600">
+      At <%= link_to @project.role.display_name, role_path(@project.role), class: "underline" %>
+    </p>
+  <% end %>
+
+  <% if @project.posts.any? %>
+    <p class="mt-2 text-sm text-stone-600">
+      <span class="text-stone-400">Mentioned in:</span>
+      <% @project.posts.each do |post| %>
+        <%= link_to post.title, post_path(post), class: "underline" %>
+      <% end %>
+    </p>
+  <% end %>
+
   <div class="prose mt-6"><%= markdown(@project.body) %></div>
 </article>

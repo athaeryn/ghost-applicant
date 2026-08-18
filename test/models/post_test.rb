@@ -21,4 +21,32 @@ class PostTest < ActiveSupport::TestCase
     assert_raises(ActiveRecord::RecordInvalid) { Post.create!(title: "", body: "b") }
     assert_raises(ActiveRecord::RecordInvalid) { Post.create!(title: "x", body: "") }
   end
+
+  test "links posts to projects and roles" do
+    project = Project.create!(title: "A", body: "b")
+    role = Role.create!(title: "Engineer", company: "Acme", start_date: Date.new(2020, 1, 1))
+    post = Post.create!(title: "Connected", body: "b", projects: [ project ], roles: [ role ])
+
+    assert_equal [ project ], post.projects.to_a
+    assert_equal [ role ], post.roles.to_a
+    assert_equal [ post ], project.posts.to_a
+    assert_equal [ post ], role.posts.to_a
+
+    post.projects.clear
+    assert_empty post.reload.projects
+  end
+
+  test "project can belong to an optional role" do
+    role = Role.create!(title: "Engineer", company: "Acme", start_date: Date.new(2020, 1, 1))
+    assigned = Project.create!(title: "Assigned", body: "b", role: role)
+    lone = Project.create!(title: "Lone", body: "b")
+
+    assert_equal role, assigned.role
+    assert_nil lone.role
+    assert_equal [ assigned ], role.projects.to_a
+
+    assigned.update!(role: nil)
+    assert_nil assigned.reload.role
+    assert_empty role.reload.projects
+  end
 end

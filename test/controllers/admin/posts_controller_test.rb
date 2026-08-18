@@ -40,6 +40,26 @@ class Admin::PostsControllerTest < ActionDispatch::IntegrationTest
     assert_equal [ "tool:rails" ], post.tag_list
   end
 
+  test "associates projects and roles when creating and updating" do
+    project = Project.create!(title: "P", body: "b")
+    role = Role.create!(title: "Engineer", company: "Acme", start_date: Date.new(2020, 1, 1))
+
+    post admin_posts_path, params: {
+      post: { title: "Linked", body: "b", project_ids: [ project.id, "" ], role_ids: [ role.id, "" ] },
+      "post[tags_input]" => ""
+    }
+    created = Post.find_by(title: "Linked")
+    assert_equal [ project.id ], created.project_ids
+    assert_equal [ role.id ], created.role_ids
+
+    patch admin_post_path(created), params: {
+      post: { title: "Linked", body: "b", project_ids: [ "" ], role_ids: [ "" ] },
+      "post[tags_input]" => ""
+    }
+    assert_empty created.reload.project_ids
+    assert_empty created.reload.role_ids
+  end
+
   test "deletes a post" do
     post = Post.create!(title: "Bye", body: "b")
     assert_difference "Post.count", -1 do

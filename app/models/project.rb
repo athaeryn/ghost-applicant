@@ -1,6 +1,9 @@
 class Project < ApplicationRecord
   include Taggable
 
+  belongs_to :role, optional: true
+  has_and_belongs_to_many :posts
+
   STATUSES = %w[active completed shelved].freeze
 
   validates :title, :body, presence: true
