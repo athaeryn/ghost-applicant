@@ -11,7 +11,7 @@ class Admin::ProjectsController < Admin::BaseController
     @project = Project.new(project_params)
     if @project.save
       @project.replace_tags(parse_tags_input(params[:project][:tags_input]))
-      redirect_to admin_projects_path, notice: "Project created."
+      redirect_to project_path(@project), notice: "Project created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -25,7 +25,7 @@ class Admin::ProjectsController < Admin::BaseController
     @project = find_record(Project.all, params[:id])
     if @project.update(project_params)
       @project.replace_tags(parse_tags_input(params[:project][:tags_input]))
-      redirect_to admin_projects_path, notice: "Project updated."
+      redirect_to project_path(@project), notice: "Project updated."
     else
       render :edit, status: :unprocessable_entity
     end

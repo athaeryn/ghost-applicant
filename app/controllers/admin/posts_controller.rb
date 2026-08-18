@@ -12,7 +12,7 @@ class Admin::PostsController < Admin::BaseController
     if @post.save
       assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
-      redirect_to admin_posts_path, notice: "Post created."
+      redirect_to post_path(@post), notice: "Post created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -28,7 +28,7 @@ class Admin::PostsController < Admin::BaseController
     if @post.update(post_params)
       assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
-      redirect_to admin_posts_path, notice: "Post updated."
+      redirect_to post_path(@post), notice: "Post updated."
     else
       render :edit, status: :unprocessable_entity
     end

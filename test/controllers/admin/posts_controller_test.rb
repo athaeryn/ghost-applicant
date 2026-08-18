@@ -18,7 +18,7 @@ class Admin::PostsControllerTest < ActionDispatch::IntegrationTest
         "post[tags_input]" => "topic:meta\nskill:writing"
       }
     end
-    assert_redirected_to admin_posts_path
+    assert_redirected_to post_path(Post.find_by(title: "New"))
 
     created = Post.find_by(title: "New")
     assert_not created.published?
@@ -32,7 +32,7 @@ class Admin::PostsControllerTest < ActionDispatch::IntegrationTest
       "post[published]" => "1",
       "post[tags_input]" => "tool:rails"
     }
-    assert_redirected_to admin_posts_path
+    assert_redirected_to post_path(post)
 
     post.reload
     assert post.published?

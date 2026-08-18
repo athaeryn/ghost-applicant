@@ -11,7 +11,7 @@ class Admin::RolesController < Admin::BaseController
     @role = Role.new(role_params)
     if @role.save
       @role.replace_tags(parse_tags_input(params[:role][:tags_input]))
-      redirect_to admin_roles_path, notice: "Role created."
+      redirect_to role_path(@role), notice: "Role created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -25,7 +25,7 @@ class Admin::RolesController < Admin::BaseController
     @role = find_record(Role.all, params[:id])
     if @role.update(role_params)
       @role.replace_tags(parse_tags_input(params[:role][:tags_input]))
-      redirect_to admin_roles_path, notice: "Role updated."
+      redirect_to role_path(@role), notice: "Role updated."
     else
       render :edit, status: :unprocessable_entity
     end

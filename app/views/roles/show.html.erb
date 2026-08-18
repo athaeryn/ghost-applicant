@@ -1,7 +1,13 @@
 <% content_for :title, "#{@role.title} at #{@role.company}" %>
 
 <article>
-  <h1 class="text-2xl font-bold"><%= @role.title %> at <%= @role.company %></h1>
+  <div class="flex items-start justify-between gap-4">
+    <h1 class="text-2xl font-bold"><%= @role.title %> at <%= @role.company %></h1>
+    <div class="flex shrink-0 items-center gap-3 text-sm text-stone-400">
+      <%= link_to "New role", new_admin_role_path, class: "underline hover:text-stone-600" %>
+      <%= link_to "Edit in admin", edit_admin_role_path(@role), class: "underline hover:text-stone-600" %>
+    </div>
+  </div>
   <p class="mt-2 text-sm text-stone-400"><%= role_dates(@role) %></p>
   <%= render "shared/tags", tags: @role.tag_list %>
 
