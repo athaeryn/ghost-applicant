@@ -116,6 +116,32 @@ class McpToolsTest < ActiveSupport::TestCase
     assert_match(/not found/, tool_text(GetPostTool.call(id: "missing")))
   end
 
+  test "job applications via MCP with full description reads and tagging" do
+    created = CreateJobApplicationTool.call(
+      company: "Acme", title: "Staff Engineer", url: "https://example.com/job",
+      description: "We are looking for a staff engineer.\n\n## Requirements\n- Rails", tags: [ "industry:ai" ]
+    )
+    application = JSON.parse(tool_text(created))
+    assert_equal "saved", application["status"]
+    assert_equal [ "industry:ai" ], application["tags"]
+
+    fetched = JSON.parse(tool_text(GetJobApplicationTool.call(id: application["id"])))
+    assert_includes fetched["description"], "## Requirements"
+    assert_equal "saved", fetched["status"]
+
+    updated = JSON.parse(tool_text(UpdateJobApplicationTool.call(id: application["id"], status: "applied", tags: [ "industry:ai", "stage:interview" ])))
+    assert_equal "applied", updated["status"]
+    assert_equal [ "industry:ai", "stage:interview" ], updated["tags"]
+
+    listed = JSON.parse(tool_text(ListJobApplicationsTool.call(status: "applied", tag: "stage:interview")))
+    assert_equal 1, listed.size
+
+    tagged = JSON.parse(tool_text(TagRecordTool.call(record_type: "job_application", record_id: application["id"], tags: [ "channel:linkedin" ])))
+    assert_equal [ "channel:linkedin", "industry:ai", "stage:interview" ], tagged
+
+    assert_match(/Error/, tool_text(GetJobApplicationTool.call(id: 999_999)))
+  end
+
   test "generate_resume persists output when LM Studio is reachable" do
     fake = Object.new
     def fake.model; nil; end

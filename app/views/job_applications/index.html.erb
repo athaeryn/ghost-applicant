@@ -1,0 +1,16 @@
+<% content_for :title, "Job applications" %>
+
+<h1 class="text-2xl font-bold">Job applications</h1>
+
+<ul class="mt-6 divide-y divide-stone-200">
+  <% @job_applications.each do |application| %>
+    <li class="py-3">
+      <div class="flex items-baseline justify-between gap-3">
+        <%= link_to application.label, job_application_path(application), class: "font-medium text-stone-900 hover:underline" %>
+        <span class="shrink-0 text-xs uppercase tracking-wide <%= application.status == "archived" ? "text-stone-400" : "text-stone-500" %>"><%= application.status %></span>
+      </div>
+      <p class="mt-1 text-xs text-stone-400"><%= application.applied_at&.strftime("%B %d, %Y") %></p>
+      <%= render "shared/tags", tags: application.tag_list %>
+    </li>
+  <% end %>
+</ul>

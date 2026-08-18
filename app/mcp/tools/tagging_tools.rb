@@ -4,7 +4,7 @@ class TagRecordTool < MCP::Tool
   description "Attaches tags to a post, project, or role. Tags are 'taxonomy:name' labels; new taxonomies and tags are created at runtime."
   input_schema(
     properties: {
-      record_type: { type: "string", description: "One of: post, project, role" },
+      record_type: { type: "string", description: "One of: post, project, role, job_application" },
       record_id: { type: "string", description: "Record id or slug" },
       tags: { type: "array", items: { type: "string" }, description: "List of 'taxonomy:name' labels to add" }
     },
@@ -13,7 +13,7 @@ class TagRecordTool < MCP::Tool
 
   def self.call(record_type:, record_id:, tags:, server_context: nil)
     klass = McpSupport.record_class(record_type)
-    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role" } ]) unless klass
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role, job_application" } ]) unless klass
 
     record = McpSupport.find_record(klass.all, record_id)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: record not found" } ]) unless record
@@ -29,7 +29,7 @@ class UntagRecordTool < MCP::Tool
   description "Removes a single 'taxonomy:name' tag from a post, project, or role."
   input_schema(
     properties: {
-      record_type: { type: "string", description: "One of: post, project, role" },
+      record_type: { type: "string", description: "One of: post, project, role, job_application" },
       record_id: { type: "string", description: "Record id or slug" },
       tag: { type: "string", description: "The 'taxonomy:name' label to remove" }
     },
@@ -38,7 +38,7 @@ class UntagRecordTool < MCP::Tool
 
   def self.call(record_type:, record_id:, tag:, server_context: nil)
     klass = McpSupport.record_class(record_type)
-    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role" } ]) unless klass
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role, job_application" } ]) unless klass
 
     record = McpSupport.find_record(klass.all, record_id)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: record not found" } ]) unless record
@@ -54,7 +54,7 @@ class RecordTagsTool < MCP::Tool
   description "Returns the tag labels attached to a post, project, or role."
   input_schema(
     properties: {
-      record_type: { type: "string", description: "One of: post, project, role" },
+      record_type: { type: "string", description: "One of: post, project, role, job_application" },
       record_id: { type: "string", description: "Record id or slug" }
     },
     required: %w[record_type record_id]
@@ -62,7 +62,7 @@ class RecordTagsTool < MCP::Tool
 
   def self.call(record_type:, record_id:, server_context: nil)
     klass = McpSupport.record_class(record_type)
-    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role" } ]) unless klass
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: record_type must be one of post, project, role, job_application" } ]) unless klass
 
     record = McpSupport.find_record(klass.all, record_id)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: record not found" } ]) unless record

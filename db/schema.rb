@@ -10,7 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_000010) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_000012) do
+  create_table "application_drafts", force: :cascade do |t|
+    t.text "body"
+    t.datetime "created_at", null: false
+    t.integer "job_application_id", null: false
+    t.string "kind", null: false
+    t.string "label"
+    t.datetime "updated_at", null: false
+    t.index ["job_application_id"], name: "index_application_drafts_on_job_application_id"
+  end
+
   create_table "generated_resumes", force: :cascade do |t|
     t.text "body", null: false
     t.datetime "created_at", null: false
@@ -19,6 +29,18 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000010) do
     t.text "params"
     t.string "title", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "job_applications", force: :cascade do |t|
+    t.date "applied_at"
+    t.string "company"
+    t.datetime "created_at", null: false
+    t.text "description"
+    t.text "notes"
+    t.string "status", default: "saved", null: false
+    t.string "title"
+    t.datetime "updated_at", null: false
+    t.string "url"
   end
 
   create_table "posts", force: :cascade do |t|
@@ -112,6 +134,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000010) do
     t.index ["slug"], name: "index_taxonomies_on_slug", unique: true
   end
 
+  add_foreign_key "application_drafts", "job_applications"
   add_foreign_key "projects", "roles"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tags", "taxonomies"

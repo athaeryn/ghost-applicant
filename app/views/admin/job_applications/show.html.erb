@@ -1,0 +1,39 @@
+<% content_for :title, @job_application.label %>
+
+<div class="flex items-start justify-between gap-4">
+  <h1 class="text-2xl font-bold"><%= @job_application.label %></h1>
+  <div class="flex shrink-0 items-center gap-3 text-sm">
+    <%= link_to "Edit", edit_admin_job_application_path(@job_application), class: "text-stone-600 hover:underline" %>
+    <%= link_to "Public view", job_application_path(@job_application), class: "text-stone-600 hover:underline" %>
+  </div>
+</div>
+
+<p class="mt-2 text-sm text-stone-500">
+  <%= @job_application.status %>
+  <% if @job_application.applied_at %><span> · applied <%= @job_application.applied_at.strftime("%B %d, %Y") %></span><% end %>
+  <% if @job_application.url.present? %><span> · <%= link_to @job_application.url, @job_application.url, target: "_blank", rel: "noopener", class: "text-blue-600 underline" %></span><% end %>
+</p>
+<%= render "shared/tags", tags: @job_application.tag_list %>
+
+<% if @job_application.description.present? %>
+  <div class="mt-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Job description</h2>
+    <div class="prose mt-2"><%= markdown(@job_application.description) %></div>
+  </div>
+<% end %>
+
+<% if @job_application.notes.present? %>
+  <div class="mt-6">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Notes</h2>
+    <div class="prose mt-2"><%= markdown(@job_application.notes) %></div>
+  </div>
+<% end %>
+
+<div class="mt-6">
+  <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Drafts (<%= @job_application.application_drafts.count %>)</h2>
+  <ul class="mt-2 space-y-1 text-sm text-stone-600">
+    <% @job_application.application_drafts.chronological.each do |draft| %>
+      <li><%= draft.kind.titleize %><%= " (#{draft.label})" if draft.label.present? %> — saved <%= draft.created_at.strftime("%b %d, %Y") %></li>
+    <% end %>
+  </ul>
+</div>

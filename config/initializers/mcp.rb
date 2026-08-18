@@ -10,6 +10,7 @@ require_dependency Rails.root.join("app/services/lm_studio_client").to_s
   post_tools
   project_tools
   role_tools
+  job_application_tools
   tagging_tools
   resume_tools
 ].each do |file|
@@ -37,6 +38,7 @@ MCP_SERVER = MCP::Server.new(
     ListPostsTool, GetPostTool, CreatePostTool, UpdatePostTool, DeletePostTool, PublishPostTool,
     ListProjectsTool, GetProjectTool, CreateProjectTool, UpdateProjectTool, DeleteProjectTool,
     ListRolesTool, GetRoleTool, CreateRoleTool, UpdateRoleTool, DeleteRoleTool,
+    ListJobApplicationsTool, GetJobApplicationTool, CreateJobApplicationTool, UpdateJobApplicationTool, DeleteJobApplicationTool,
     TagRecordTool, UntagRecordTool, RecordTagsTool,
     GenerateResumeTool, ListResumesTool
   ]

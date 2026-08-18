@@ -4,6 +4,12 @@ Rails.application.routes.draw do
   resources :posts, only: %i[index show]
   resources :projects, only: %i[index show]
   resources :roles, only: %i[index show]
+  resources :job_applications, only: %i[index show] do
+    member do
+      post :add_tag
+      delete :remove_tag
+    end
+  end
 
   get "tags/:taxonomy", to: "tags#index", as: :taxonomy_tags
   get "tags/:taxonomy/:slug", to: "tags#show", as: :tag
@@ -13,6 +19,7 @@ Rails.application.routes.draw do
     resources :posts
     resources :projects
     resources :roles
+    resources :job_applications
     resources :taxonomies, only: %i[index new create show destroy]
     resources :tags, only: %i[create destroy]
   end

@@ -1,6 +1,6 @@
 # Serialization + shared query helpers for the MCP tools.
 module McpSupport
-  RECORD_TYPES = { "post" => Post, "project" => Project, "role" => Role }.freeze
+  RECORD_TYPES = { "post" => Post, "project" => Project, "role" => Role, "job_application" => JobApplication }.freeze
 
   module_function
 
@@ -109,6 +109,30 @@ module McpSupport
     {
       id: g.id, title: g.title, focus: g.focus, model: g.model,
       created_at: fmt_time(g.created_at), generated: g.body
+    }
+  end
+
+  def job_application(j)
+    {
+      id: j.id, company: j.company, title: j.title, url: j.url,
+      status: j.status, applied_at: fmt_date(j.applied_at),
+      created_at: fmt_time(j.created_at), updated_at: fmt_time(j.updated_at),
+      tags: j.tag_list, draft_count: j.application_drafts.count
+    }
+  end
+
+  def job_application_detail(j)
+    job_application(j).merge(
+      description: j.description.to_s,
+      notes: j.notes.to_s,
+      drafts: j.application_drafts.chronological.map { |d| application_draft(d) }
+    )
+  end
+
+  def application_draft(d)
+    {
+      id: d.id, kind: d.kind, label: d.label,
+      body: d.body.to_s, created_at: fmt_time(d.created_at)
     }
   end
 end
