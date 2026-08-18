@@ -1,0 +1,26 @@
+<%= render "admin/shared/errors", object: @post %>
+<%= form_with model: @post, url: @post.persisted? ? admin_post_path(@post) : admin_posts_path do |f| %>
+  <div>
+    <%= f.label :title, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_field :title, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4">
+    <%= f.label :summary, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :summary, rows: 2, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4">
+    <%= f.label :body, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :body, rows: 18, class: "w-full rounded border border-stone-300 px-3 py-2 font-mono text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4 flex items-center gap-2 text-sm">
+    <%= check_box_tag "post[published]", "1", @post.published?, class: "rounded" %>
+    <%= label_tag "post[published]", "Published (visible on the site)" %>
+  </div>
+  <div class="mt-4">
+    <%= render "admin/shared/tags_input", object: @post, scope: :post %>
+  </div>
+  <div class="mt-6 flex items-center gap-3">
+    <%= f.submit "Save post", class: "rounded bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700" %>
+    <%= link_to "Cancel", admin_posts_path, class: "text-sm text-stone-500 hover:underline" %>
+  </div>
+<% end %>

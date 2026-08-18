@@ -1,0 +1,6 @@
+<%# One 'taxonomy:name' label per line. object must respond to tag_list. %>
+<div>
+  <%= label_tag "#{scope}[tags_input]", "Tags — one “taxonomy:name” per line", class: "mb-1 block text-sm font-medium text-stone-700" %>
+  <%= text_area_tag "#{scope}[tags_input]", object.tag_list.join("\n"), rows: 4,
+        class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+</div>

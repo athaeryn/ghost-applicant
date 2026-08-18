@@ -1,0 +1,42 @@
+<%= render "admin/shared/errors", object: @project %>
+<%= form_with model: @project, url: @project.persisted? ? admin_project_path(@project) : admin_projects_path do |f| %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :title, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.text_field :title, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <div>
+      <%= f.label :status, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.select :status, Project::STATUSES, {}, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+  </div>
+  <div class="mt-4">
+    <%= f.label :summary, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :summary, rows: 2, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4">
+    <%= f.label :body, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :body, rows: 18, class: "w-full rounded border border-stone-300 px-3 py-2 font-mono text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4 grid gap-4 sm:grid-cols-3">
+    <div>
+      <%= f.label :url, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.url_field :url, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <div>
+      <%= f.label :started_at, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.date_field :started_at, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <div>
+      <%= f.label :ended_at, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.date_field :ended_at, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+  </div>
+  <div class="mt-4">
+    <%= render "admin/shared/tags_input", object: @project, scope: :project %>
+  </div>
+  <div class="mt-6 flex items-center gap-3">
+    <%= f.submit "Save project", class: "rounded bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700" %>
+    <%= link_to "Cancel", admin_projects_path, class: "text-sm text-stone-500 hover:underline" %>
+  </div>
+<% end %>

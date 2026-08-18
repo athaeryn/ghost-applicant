@@ -1,0 +1,38 @@
+<%= render "admin/shared/errors", object: @role %>
+<%= form_with model: @role, url: @role.persisted? ? admin_role_path(@role) : admin_roles_path do |f| %>
+  <div class="grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :title, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.text_field :title, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <div>
+      <%= f.label :company, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.text_field :company, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+  </div>
+  <div class="mt-4 grid gap-4 sm:grid-cols-2">
+    <div>
+      <%= f.label :start_date, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.date_field :start_date, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+    <div>
+      <%= f.label :end_date, class: "mb-1 block text-sm font-medium text-stone-700" %>
+      <%= f.date_field :end_date, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+    </div>
+  </div>
+  <div class="mt-4">
+    <%= f.label :summary, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :summary, rows: 2, class: "w-full rounded border border-stone-300 px-3 py-2 text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4">
+    <%= f.label :body, class: "mb-1 block text-sm font-medium text-stone-700" %>
+    <%= f.text_area :body, rows: 10, class: "w-full rounded border border-stone-300 px-3 py-2 font-mono text-sm focus:border-stone-500 focus:outline-none" %>
+  </div>
+  <div class="mt-4">
+    <%= render "admin/shared/tags_input", object: @role, scope: :role %>
+  </div>
+  <div class="mt-6 flex items-center gap-3">
+    <%= f.submit "Save role", class: "rounded bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700" %>
+    <%= link_to "Cancel", admin_roles_path, class: "text-sm text-stone-500 hover:underline" %>
+  </div>
+<% end %>
