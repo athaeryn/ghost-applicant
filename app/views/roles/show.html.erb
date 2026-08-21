@@ -10,16 +10,19 @@
   <p class="mt-2 text-sm text-stone-400"><%= role_dates(@role) %></p>
   <%= render "shared/tags", tags: @role.tag_list %>
 
-  <% if @role.projects.any? %>
-    <div class="mt-4">
+  <div class="mt-4">
+    <div class="flex items-center gap-2">
       <span class="text-sm text-stone-400">Projects:</span>
+      <%= link_to "New project →", new_admin_project_path(project: { role_id: @role.id }), class: "text-sm text-stone-400 underline hover:text-stone-600" %>
+    </div>
+    <% if @role.projects.any? %>
       <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-600">
         <% @role.projects.each do |project| %>
           <%= link_to project.title, project_path(project), class: "underline" %>
         <% end %>
       </span>
-    </div>
-  <% end %>
+    <% end %>
+  </div>
 
   <% if @role.posts.any? %>
     <div class="mt-2">

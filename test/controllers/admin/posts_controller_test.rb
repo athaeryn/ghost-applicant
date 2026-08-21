@@ -18,11 +18,25 @@ class Admin::PostsControllerTest < ActionDispatch::IntegrationTest
         "post[tags_input]" => "topic:meta\nskill:writing"
       }
     end
-    assert_redirected_to post_path(Post.find_by(title: "New"))
+    assert_redirected_to admin_post_path(Post.find_by(title: "New"))
 
     created = Post.find_by(title: "New")
     assert_not created.published?
     assert_equal %w[skill:writing topic:meta], created.tag_list
+  end
+
+  test "creates a published post when the checkbox is set" do
+    assert_difference "Post.count", 1 do
+      post admin_posts_path, params: {
+        post: { title: "Live", summary: "s", body: "body" },
+        "post[published]" => "1"
+      }
+    end
+    created = Post.find_by(title: "Live")
+    assert created.published?
+    assert_redirected_to post_path(created)
+    get post_path(created)
+    assert_response :success
   end
 
   test "publishing toggle works and update replaces tags" do

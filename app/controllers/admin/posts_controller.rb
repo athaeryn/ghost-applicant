@@ -9,10 +9,11 @@ class Admin::PostsController < Admin::BaseController
 
   def create
     @post = Post.new(post_params)
+    apply_published_toggle(@post)
     if @post.save
       assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
-      redirect_to post_path(@post), notice: "Post created."
+      redirect_to after_save_path(@post), notice: "Post created."
     else
       render :new, status: :unprocessable_entity
     end
@@ -28,7 +29,7 @@ class Admin::PostsController < Admin::BaseController
     if @post.update(post_params)
       assign_associations(@post)
       @post.replace_tags(parse_tags_input(params[:post][:tags_input]))
-      redirect_to post_path(@post), notice: "Post updated."
+      redirect_to after_save_path(@post), notice: "Post updated."
     else
       render :edit, status: :unprocessable_entity
     end
@@ -61,5 +62,9 @@ class Admin::PostsController < Admin::BaseController
     else
       post.published_at = nil
     end
+  end
+
+  def after_save_path(post)
+    post.published? ? post_path(post) : admin_post_path(post)
   end
 end

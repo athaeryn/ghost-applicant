@@ -4,7 +4,7 @@ class Admin::ProjectsController < Admin::BaseController
   end
 
   def new
-    @project = Project.new
+    @project = Project.new(role_id: params.dig(:project, :role_id))
   end
 
   def create

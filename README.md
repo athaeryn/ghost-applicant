@@ -43,6 +43,28 @@ docker compose run --rm app bin/rails db:seed
 Stop with `docker compose down`. The SQLite database lives in `storage/` on the
 host, so your content persists regardless.
 
+### Useful one-liners
+
+```sh
+# Run any Rails task inside the app container
+docker compose run --rm app bin/rails runner 'Post.count'
+
+# Publish a saved post without the admin UI
+docker compose run --rm -T app bin/rails runner \
+  'Post.find_by!(title: "…").update!(published_at: Time.current)'
+
+# Restart the app after code/MCP changes
+docker compose exec -T app rm -f /app/tmp/pids/server.pid; docker compose restart app
+```
+
+A few gotchas worth remembering:
+
+- **Puma/faces one SQLite connection**, so after adding a tool, editing models, or
+  writing to `storage/*.sqlite3` from outside, restart the app — an open
+  connection in WAL mode won't pick up external file edits until it reconnects.
+- Puma is single-process (MCP session state lives in memory). If boot fails with
+  "A server is already running", remove a stale `tmp/pids/server.pid`.
+
 ## Using the MCP server
 
 Point any MCP client at `http://localhost:3000/mcp`. For example, this repo's
@@ -86,11 +108,16 @@ Configure via environment (defaults work for a stock LM Studio on the host):
 | Variable             | Default                         |
 |----------------------|---------------------------------|
 | `LM_STUDIO_BASE_URL` | `http://host.docker.internal:1234` |
-| `LM_STUDIO_MODEL`    | *unset — LM Studio picks a loaded model* |
+| `LM_STUDIO_MODEL`    | *unset — auto-detected from `GET /v1/models`* |
 
 Overrides go in a `.env` file next to `docker-compose.yml` (compose reads it
-automatically): `LM_STUDIO_MODEL="qwen3-coder-30b-instruct"`. The tool returns a
-friendly error if LM Studio is unreachable, so it degrades cleanly.
+automatically): `LM_STUDIO_MODEL="qwen3-coder-30b-instruct"`. When unset, the
+client queries `/v1/models` for the loaded model and labels each saved draft
+with it. The tool returns a friendly error if LM Studio is unreachable, so it
+degrades cleanly.
+
+The model may be as small as a 4B-parameter tune, so the generator clips
+role/project bodies and job descriptions to fit a small context window.
 
 If LM Studio runs on the host, `host.docker.internal` reaches it from the
 container (Docker Desktop). Local non-Docker runs fall back to
