@@ -9,8 +9,18 @@
         <% if @draft.label.present? %><span class="rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-600"><%= @draft.label %></span><% end %>
       </p>
     </div>
-    <%= link_to "Back to application", job_application_path(@job_application),
-          class: "shrink-0 text-sm text-stone-400 underline hover:text-stone-600" %>
+    <div class="flex shrink-0 items-center gap-3 text-sm">
+      <%= button_to(@draft.favorited? ? "Unfavorite" : "Favorite",
+            toggle_favorite_job_application_draft_path(@job_application, @draft),
+            method: :post,
+            class: @draft.favorited? ? "text-amber-600 hover:underline" : "text-stone-600 hover:underline") %>
+      <%= button_to "Delete", job_application_draft_path(@job_application, @draft),
+            method: :delete,
+            data: { turbo_confirm: "Delete this draft?" },
+            class: "text-red-600 hover:underline" %>
+      <%= link_to "Back to application", job_application_path(@job_application),
+            class: "text-stone-400 underline hover:text-stone-600" %>
+    </div>
   </div>
 
   <% index = @drafts.index(@draft) %>

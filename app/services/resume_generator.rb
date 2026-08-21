@@ -1,6 +1,8 @@
 # Builds a resume from the fact base (roles, projects, posts and their tags)
 # using a local LLM served by LM Studio.
 class ResumeGenerator
+  attr_reader :client
+
   def initialize(client: nil)
     @client = client || LmStudioClient.new
   end
@@ -75,9 +77,10 @@ class ResumeGenerator
   def generate_for_application(application, focus: nil, include_projects: true, include_roles: true, kind: "resume")
     facts = build_tag_intersected_facts(application, kind: kind, include_projects: include_projects, include_roles: include_roles)
     prompt = build_application_prompt(application, facts, focus: focus, kind: kind)
+    system_prompt = kind == "cover_letter" ? COVER_LETTER_SYSTEM_PROMPT : RESUME_SYSTEM_PROMPT
 
     @client.chat(
-      [ { role: "system", content: APPLICATION_SYSTEM_PROMPT },
+      [ { role: "system", content: system_prompt },
        { role: "user", content: prompt } ],
       temperature: 0.3
     ).to_s
@@ -99,7 +102,7 @@ class ResumeGenerator
     then Work Experience (roles with dates and bullets), then Projects.
   PROMPT
 
-  APPLICATION_SYSTEM_PROMPT = <<~PROMPT
+  RESUME_SYSTEM_PROMPT = <<~PROMPT
     You are a resume writer tailoring a resume for one specific job posting.
     You are given the job description and a factual summary of the candidate's
     career (roles, projects, and skills).
@@ -115,6 +118,26 @@ class ResumeGenerator
 
     Structure: a short summary, then Skills (grouped by the given taxonomies),
     then Work Experience (roles with dates and bullets), then Projects.
+  PROMPT
+
+  COVER_LETTER_SYSTEM_PROMPT = <<~PROMPT
+    You are a cover letter writer tailoring a letter for one specific job
+    posting. You are given the job description and a factual summary of the
+    candidate's career (roles, projects, and skills).
+
+    Ground rules:
+    - Use ONLY the facts provided. Never invent companies, titles, dates, or skills.
+    - Read the job description carefully and weave the most relevant facts into
+      a compelling narrative. Reframe and select — never fabricate.
+    - Address the letter to the hiring team (use "Dear hiring team" if no
+      specific name is given).
+    - If a requested qualification has no supporting fact, do not imply it; say
+      so in a "Note:" line.
+    - Keep paragraphs focused and outcome-oriented, based strictly on the facts.
+    - If writing guidance is included, follow it: match that voice and tone exactly.
+
+    Structure: a greeting, an opening paragraph expressing interest, 2-3 body
+    paragraphs highlighting relevant experience, and a closing paragraph.
   PROMPT
 
   # Builds a fact sheet for the generator; also used when composing prompts.
@@ -256,6 +279,7 @@ class ResumeGenerator
   def build_application_prompt(application, facts, focus:, kind: "resume")
     directive = focus.presence || application.title.presence || "this posting"
     guidance = kind_writing_guidance(kind: kind)
+    output_type = kind == "cover_letter" ? "cover letter" : "resume"
 
     prompt = <<~PROMPT
       Target role/focus: #{directive}.
@@ -267,6 +291,8 @@ class ResumeGenerator
       Here is everything currently known about the candidate:
 
       #{facts}
+
+      Produce a #{output_type} tailored to this posting.
     PROMPT
     prompt += "\n\nWriting guidance:\n\n#{guidance}" if guidance.present?
     prompt

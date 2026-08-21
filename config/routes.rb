@@ -5,11 +5,17 @@ Rails.application.routes.draw do
   resources :projects, only: %i[index show]
   resources :roles, only: %i[index show]
   resources :job_applications, only: %i[index show] do
-    resources :drafts, only: %i[show], controller: "job_application_drafts"
+    resources :drafts, only: %i[show destroy], controller: "job_application_drafts" do
+      member do
+        post :toggle_favorite
+      end
+    end
     member do
       post :add_tag
       delete :remove_tag
       post :analyze
+      post :draft
+      post :draft_cover_letter
     end
   end
 

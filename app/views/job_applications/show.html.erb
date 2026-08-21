@@ -39,7 +39,7 @@
       <%= submit_tag "Add tag", class: "rounded bg-stone-900 px-3 py-1.5 text-sm text-white hover:bg-stone-700" %>
     <% end %>
 
-    <div class="mt-8">
+    <div class="mt-8 flex gap-2">
       <%= button_to "Analyze", analyze_job_application_path(@job_application),
             method: :post,
             class: "rounded bg-stone-900 px-3 py-1.5 text-xs text-white hover:bg-stone-700" %>
@@ -67,17 +67,47 @@
     </div>
   <% end %>
 
-  <% if @job_application.application_drafts.any? %>
-    <div class="mt-8">
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Drafts</h2>
-      <ul class="mt-2 space-y-1 text-sm text-stone-600">
-        <% @job_application.application_drafts.chronological.each do |draft| %>
-          <li>
-            <%= link_to "#{draft.kind.titleize}#{" (#{draft.label})" if draft.label.present?} — saved #{draft.created_at.strftime("%b %d")}",
-                  job_application_draft_path(@job_application, draft), class: "underline" %>
-          </li>
+  <% resumes = @job_application.application_drafts.resumes.chronological %>
+  <% cover_letters = @job_application.application_drafts.cover_letters.chronological %>
+
+  <div class="p-4 mt-4 flex space-x-5 border border-2 border-gray-200 bg-white rounded-xl">
+    <div class="flex-1">
+      <div class="">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400 mb-2">Resume drafts</h2>
+        <%= button_to "Generate resume draft", draft_job_application_path(@job_application),
+              method: :post,
+              class: "rounded bg-stone-700 px-3 py-1.5 text-sm text-white hover:bg-stone-500" %>
+        <% if resumes.any? %>
+          <ul class="mt-2 space-y-1 text-sm text-stone-600">
+            <% resumes.each do |draft| %>
+              <li class="flex items-center gap-2">
+                <span class="<% if draft.favorited? %>text-amber-500<% else %>text-gray-200<% end %>">&#9733;</span>
+                <%= link_to "#{draft.created_at.strftime("%b %d — %I:%M%P")}",
+                      job_application_draft_path(@job_application, draft), class: "underline" %>
+              </li>
+            <% end %>
+          </ul>
         <% end %>
-      </ul>
+      </div>
     </div>
-  <% end %>
+    <div class="flex-1">
+      <div class="">
+        <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400 mb-2">Cover letter drafts</h2>
+        <%= button_to "Generate cover letter", draft_cover_letter_job_application_path(@job_application),
+              method: :post,
+              class: "rounded bg-stone-700 px-3 py-1.5 text-sm text-white hover:bg-stone-500" %>
+        <% if cover_letters.any? %>
+          <ul class="mt-2 space-y-1 text-sm text-stone-600">
+            <% cover_letters.each do |draft| %>
+              <li class="flex items-center gap-2">
+                <span class="<% if draft.favorited? %>text-amber-500<% else %>text-gray-200<% end %>">&#9733;</span>
+                <%= link_to "#{draft.created_at.strftime("%b %d — %I:%M%P")}",
+                      job_application_draft_path(@job_application, draft), class: "underline" %>
+              </li>
+            <% end %>
+          </ul>
+        <% end %>
+      </div>
+    </div>
+  </div>
 </article>
