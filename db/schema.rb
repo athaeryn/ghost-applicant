@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_000012) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_000015) do
   create_table "application_drafts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -36,6 +36,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000012) do
     t.string "company"
     t.datetime "created_at", null: false
     t.text "description"
+    t.text "gap_tags"
     t.text "notes"
     t.string "status", default: "saved", null: false
     t.string "title"

@@ -44,11 +44,12 @@ end
 
 class DraftResumeTool < MCP::Tool
   tool_name "draft_resume"
-  title "Draft Tailored Resume"
-  description "Reads a stored job application (its pasted job description), the fact base (roles + projects + tagged skills), and any meta: writing guidance, then asks the local LM Studio model for a resume tailored to that posting. The result is saved as an ApplicationDraft (kind: resume) on the job application and returned."
+  title "Draft Tailored Resume or Cover Letter"
+  description "Reads a stored job application (its pasted job description), the fact base (roles + projects + tagged skills), and any meta: writing guidance, then asks the local LM Studio model for a resume or cover letter tailored to that posting. The result is saved as an ApplicationDraft on the job application and returned."
   input_schema(
     properties: {
       job_application_id: { type: "integer", description: "Id of the job application to tailor for" },
+      kind: { type: "string", description: "resume or cover_letter (default resume)", enum: %w[resume cover_letter] },
       focus: { type: "string", description: "Optional emphasis beyond the job title" },
       include_projects: { type: "boolean", description: "Include projects in the facts (default true)" },
       include_roles: { type: "boolean", description: "Include roles in the facts (default true)" },
@@ -57,9 +58,10 @@ class DraftResumeTool < MCP::Tool
     required: [ "job_application_id" ]
   )
 
-  def self.call(job_application_id:, focus: nil, include_projects: nil, include_roles: nil, model: nil, client: nil, server_context: nil)
+  def self.call(job_application_id:, kind: "resume", focus: nil, include_projects: nil, include_roles: nil, model: nil, client: nil, server_context: nil)
     application = JobApplication.find_by(id: job_application_id.to_i)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: job application not found" } ]) unless application
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: kind must be resume or cover_letter" } ]) unless ApplicationDraft::KINDS.include?(kind)
 
     lm = client || LmStudioClient.new(model: model)
     generator = ResumeGenerator.new(client: lm)
@@ -67,15 +69,16 @@ class DraftResumeTool < MCP::Tool
       application,
       focus: focus,
       include_projects: include_projects != false,
-      include_roles: include_roles != false
+      include_roles: include_roles != false,
+      kind: kind
     )
 
     draft = application.application_drafts.create!(
-      kind: "resume",
+      kind: kind,
       label: [ lm.model.presence, "local" ].compact.first,
       body: content
     )
-    MCP::Tool::Response.new([ { type: "text", text: "Resume draft saved for '#{application.label}' (draft ##{draft.id}).\n\n#{content}" } ])
+    MCP::Tool::Response.new([ { type: "text", text: "#{kind.titleize} draft saved for '#{application.label}' (draft ##{draft.id}).\n\n#{content}" } ])
   rescue LmStudioUnavailableError, LmStudioError => e
     MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.message}" } ])
   rescue ActiveRecord::RecordInvalid => e

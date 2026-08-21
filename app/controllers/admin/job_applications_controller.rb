@@ -41,9 +41,22 @@ class Admin::JobApplicationsController < Admin::BaseController
     redirect_to admin_job_applications_path, notice: "Job application deleted."
   end
 
+  def analyze
+    @job_application = JobApplication.find(params[:id])
+    generator = ResumeGenerator.new
+    result = generator.analyze(@job_application)
+
+    @job_application.update!(gap_tags: result[:gap_tags].join("\n"))
+    @job_application.add_tags(result[:tags]) if result[:tags].any?
+
+    redirect_to job_application_path(@job_application), notice: "Analysis complete. #{result[:tags].count} tags applied."
+  rescue LmStudioUnavailableError, LmStudioError => e
+    redirect_to job_application_path(@job_application), alert: "Analysis failed: #{e.message}"
+  end
+
   private
 
   def job_application_params
-    params.require(:job_application).permit(:company, :title, :url, :description, :notes, :status, :applied_at)
+    params.require(:job_application).permit(:company, :title, :url, :description, :notes, :status, :applied_at, :gap_tags)
   end
 end

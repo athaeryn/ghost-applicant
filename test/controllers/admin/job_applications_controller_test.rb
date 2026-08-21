@@ -42,4 +42,53 @@ class Admin::JobApplicationsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_redirected_to admin_job_applications_path
   end
+
+  test "analyze saves gap_tags and merges known tags" do
+    # Create a role carrying tool:rails so it appears in the tag catalog
+    role = Role.create!(title: "Rails Dev", company: "Acme", start_date: Date.new(2020, 1, 1))
+    role.add_tags("tool:rails")
+
+    application = JobApplication.create!(title: "Engineer", company: "Acme", description: "Build things")
+
+    fake = Object.new
+    def fake.model; "test-model"; end
+    def fake.chat(*)
+      JSON.generate(
+        matched_tags: [ "tool:rails" ],
+        gap_tags: [ "tool:wp-cli", "skill:ruby" ]
+      )
+    end
+
+    original_new = ResumeGenerator.method(:new)
+    ResumeGenerator.define_singleton_method(:new) { |**opts| original_new.call(client: fake) }
+    begin
+      post analyze_admin_job_application_path(application)
+    ensure
+      ResumeGenerator.define_singleton_method(:new, original_new)
+    end
+    assert_redirected_to job_application_path(application)
+
+    application.reload
+    assert_equal "tool:wp-cli\nskill:ruby", application.gap_tags
+    assert_equal [ "tool:rails" ], application.tag_list
+  end
+
+  test "analyze handles LLM errors gracefully" do
+    application = JobApplication.create!(title: "Engineer", company: "Acme", description: "Build things")
+
+    down = Object.new
+    def down.model; nil; end
+    def down.chat(*); raise LmStudioUnavailableError, "LM Studio is not reachable"; end
+
+    original_new = ResumeGenerator.method(:new)
+    ResumeGenerator.define_singleton_method(:new) { |**opts| original_new.call(client: down) }
+    begin
+      post analyze_admin_job_application_path(application)
+    ensure
+      ResumeGenerator.define_singleton_method(:new, original_new)
+    end
+    assert_redirected_to job_application_path(application)
+    assert_equal [], application.reload.tag_list
+    assert_nil application.gap_tags
+  end
 end

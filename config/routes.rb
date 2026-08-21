@@ -9,6 +9,7 @@ Rails.application.routes.draw do
     member do
       post :add_tag
       delete :remove_tag
+      post :analyze
     end
   end
 
@@ -20,7 +21,11 @@ Rails.application.routes.draw do
     resources :posts
     resources :projects
     resources :roles
-    resources :job_applications
+    resources :job_applications do
+      member do
+        post :analyze
+      end
+    end
     resources :taxonomies, only: %i[index new create show destroy]
     resources :tags, only: %i[create destroy]
   end

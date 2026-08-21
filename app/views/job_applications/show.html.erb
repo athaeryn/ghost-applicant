@@ -15,9 +15,17 @@
     <% end %>
   </div>
 
+  <% if @job_application.description.present? %>
+    <div class="mt-8">
+      <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Job description</h2>
+      <div class="mt-2 border border-2 border-gray-200 bg-white p-4 rounded-xl"><div class="prose"><%= markdown(@job_application.description) %></div></div>
+    </div>
+  <% end %>
+
   <div class="mt-4">
     <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Tags</h2>
-    <div class="mt-2 flex flex-wrap items-center gap-1.5">
+    <div class="mt-2 border border-2 border-gray-200 bg-white p-4 rounded-xl">
+    <div class="flex flex-wrap items-center gap-1.5">
       <% @job_application.tag_list.each do |label| %>
         <span class="flex items-center gap-1.5 rounded-full bg-stone-100 px-2.5 py-1 text-xs text-stone-600">
           <%= label %>
@@ -30,14 +38,27 @@
       <%= text_field_tag :tag, nil, placeholder: "taxonomy:name", class: "w-56 rounded border border-stone-300 px-3 py-1.5 text-sm focus:border-stone-500 focus:outline-none" %>
       <%= submit_tag "Add tag", class: "rounded bg-stone-900 px-3 py-1.5 text-sm text-white hover:bg-stone-700" %>
     <% end %>
+
+    <div class="mt-8">
+      <%= button_to "Analyze", analyze_job_application_path(@job_application),
+            method: :post,
+            class: "rounded bg-stone-900 px-3 py-1.5 text-xs text-white hover:bg-stone-700" %>
+    </div>
+
+    <% if @job_application.gap_tags.present? %>
+      <div class="mt-4">
+        <h2 class="text-sm font-semibold tracking-wide text-stone-400">Gap tags</h2>
+        <p class="mt-1 text-xs text-stone-400">Tags with no supporting records yet.</p>
+        <div class="mt-2 flex flex-wrap gap-1.5">
+          <% @job_application.gap_tags.split("\n").each do |tag| %>
+            <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs text-amber-700"><%= tag %></span>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    </div>
   </div>
 
-  <% if @job_application.description.present? %>
-    <div class="mt-8">
-      <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Job description</h2>
-      <div class="prose mt-2"><%= markdown(@job_application.description) %></div>
-    </div>
-  <% end %>
 
   <% if @job_application.notes.present? %>
     <div class="mt-8">
