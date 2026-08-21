@@ -16,11 +16,13 @@
       <%= link_to "New project →", new_admin_project_path(project: { role_id: @role.id }), class: "text-sm text-stone-400 underline hover:text-stone-600" %>
     </div>
     <% if @role.projects.any? %>
-      <span class="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-600">
+      <div class="mt-1 flex flex-wrap gap-x-3 text-sm text-stone-600">
         <% @role.projects.each do |project| %>
-          <%= link_to project.title, project_path(project), class: "underline" %>
+          <div class="rounded-lg border border-2 border-gray-300 px-4 py-2">
+            <%= link_to project.title, project_path(project), class: "underline" %>
+          </div>
         <% end %>
-      </span>
+      </div>
     <% end %>
   </div>
 

@@ -13,8 +13,8 @@ class JobApplication < ApplicationRecord
   scope :by_recent, -> { order(created_at: :desc) }
 
   def label
-    parts = [ title, company.presence && "at #{company}", url.presence ]
-    parts.compact.join(" ").presence || "Untitled application"
+    parts = [ title, company.presence && "at #{company}" ]
+    parts.compact.join(" ").presence || url.presence || "Untitled application"
   end
 
   private
