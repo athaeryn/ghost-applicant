@@ -43,6 +43,10 @@
       <%= button_to "Analyze", analyze_job_application_path(@job_application),
             method: :post,
             class: "rounded bg-stone-900 px-3 py-1.5 text-xs text-white hover:bg-stone-700" %>
+      <%= link_to "Preview resume prompt", preview_job_application_path(@job_application, kind: "resume"),
+            class: "rounded bg-stone-200 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-300" %>
+      <%= link_to "Preview cover letter prompt", preview_job_application_path(@job_application, kind: "cover_letter"),
+            class: "rounded bg-stone-200 px-3 py-1.5 text-xs text-stone-600 hover:bg-stone-300" %>
     </div>
 
     <% if @job_application.gap_tags.present? %>
@@ -58,7 +62,6 @@
     <% end %>
     </div>
   </div>
-
 
   <% if @job_application.notes.present? %>
     <div class="mt-8">

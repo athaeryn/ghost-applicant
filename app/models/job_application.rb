@@ -2,6 +2,7 @@ class JobApplication < ApplicationRecord
   include Taggable
 
   has_many :application_drafts, dependent: :destroy
+  has_many :job_application_quotes, dependent: :destroy
 
   STATUSES = %w[saved applied interviewing offer rejected archived].freeze
 

@@ -7,6 +7,13 @@ class JobApplicationsController < ApplicationController
     @job_application = JobApplication.find(params[:id])
   end
 
+  def preview
+    @job_application = JobApplication.find(params[:id])
+    generator = ResumeGenerator.new
+    kind = params[:kind] || "resume"
+    @system_prompt, @user_prompt = generator.preview_prompt(@job_application, kind: kind)
+  end
+
   def analyze
     @job_application = JobApplication.find(params[:id])
     generator = ResumeGenerator.new

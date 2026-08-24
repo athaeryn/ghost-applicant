@@ -1,0 +1,23 @@
+<% content_for :title, "Prompt preview — #{@job_application.label}" %>
+
+<article>
+  <div class="flex items-start justify-between gap-4">
+    <h1 class="text-2xl font-bold">Prompt preview</h1>
+    <%= link_to "Back to application", job_application_path(@job_application),
+          class: "shrink-0 text-sm text-stone-400 underline hover:text-stone-600" %>
+  </div>
+
+  <p class="mt-2 text-sm text-stone-500">
+    <%= @job_application.label %> &middot; kind: <strong><%= params[:kind] || "resume" %></strong>
+  </p>
+
+  <div class="mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">System prompt</h2>
+    <pre class="mt-2 overflow-x-auto rounded border border-2 border-gray-200 bg-white p-4 text-sm whitespace-pre-wrap"><%= @system_prompt %></pre>
+  </div>
+
+  <div class="mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">User prompt</h2>
+    <pre class="mt-2 overflow-x-auto rounded border border-2 border-gray-200 bg-white p-4 text-sm whitespace-pre-wrap"><%= @user_prompt %></pre>
+  </div>
+</article>

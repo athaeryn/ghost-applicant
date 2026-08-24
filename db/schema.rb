@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_000016) do
+ActiveRecord::Schema[8.1].define(version: 2026_08_17_000017) do
   create_table "application_drafts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
@@ -30,6 +30,17 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000016) do
     t.text "params"
     t.string "title", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "job_application_quotes", force: :cascade do |t|
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.integer "job_application_id", null: false
+    t.integer "source_id"
+    t.string "source_type"
+    t.datetime "updated_at", null: false
+    t.index ["job_application_id"], name: "index_job_application_quotes_on_job_application_id"
+    t.index ["source_type", "source_id"], name: "index_job_application_quotes_on_source"
   end
 
   create_table "job_applications", force: :cascade do |t|
@@ -137,6 +148,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000016) do
   end
 
   add_foreign_key "application_drafts", "job_applications"
+  add_foreign_key "job_application_quotes", "job_applications"
   add_foreign_key "projects", "roles"
   add_foreign_key "taggings", "tags"
   add_foreign_key "tags", "taxonomies"

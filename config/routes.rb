@@ -16,6 +16,7 @@ Rails.application.routes.draw do
       post :analyze
       post :draft
       post :draft_cover_letter
+      get :preview
     end
   end
 

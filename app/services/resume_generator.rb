@@ -43,6 +43,15 @@ class ResumeGenerator
     parse_analysis_response(raw, catalog: catalog)
   end
 
+  # Returns the system and user prompts that would be sent for a job application,
+  # for debugging/preview purposes.
+  def preview_prompt(application, kind: "resume")
+    facts = build_tag_intersected_facts(application, kind: kind, include_projects: true, include_roles: true)
+    system_prompt = kind == "cover_letter" ? GOOGLE_COVER_LETTER_PROMPT : GOOGLE_RESUME_PROMPT
+    user_prompt = build_application_prompt(application, facts, focus: nil, kind: kind)
+    [ system_prompt, user_prompt ]
+  end
+
   ANALYZE_SYSTEM_PROMPT = <<~PROMPT
     You are a job-application tagger. You are given a job description, a
     catalog of available tags (with counts of how many records carry each),
@@ -97,9 +106,63 @@ class ResumeGenerator
     - If important information is missing, say so with a "Note:" line instead of guessing.
     - Keep bullets concise and outcome-oriented, based strictly on the facts.
     - If writing guidance is included, follow it: match that voice and tone exactly.
+    - Do NOT use markdown tables. Use bulleted lists instead.
+    - Prefer direct quotes from the facts. Only paraphrase to summarize —
+      never invent details or imply expertise without supporting records.
 
     Structure: a short summary, then Skills (grouped by the given taxonomies),
     then Work Experience (roles with dates and bullets), then Projects.
+  PROMPT
+
+  GOOGLE_COVER_LETTER_PROMPT = <<~PROMPT
+    You are an expert career copywriter. Your sole task is to draft a professional cover letter tailored to a job posting (<job_description>) based strictly on the provided candidate facts (<source_materials>).
+
+    ### 1. Absolute Factual Constraints
+
+    * **ZERO FABRICATION:** Use ONLY the facts provided. Never invent companies, job titles, employment dates, or skills.
+    * **ZERO EXTRAPOLATION:** Do not imply expertise or scale without supporting records. Prefer direct quotes or exact figures from the facts over paraphrasing.
+    * **THE HONESTY RULE:** If the job description requires a qualification that the candidate lacks, do not invent or imply it. Instead, omit it from the letter and list it at the very bottom in a "Note:" line.
+
+    ### 2. Narrative & Framing Rules
+
+    * **STRATEGIC SELECTION:** Read the job description carefully. Select and weave only the most relevant candidate facts into a compelling, outcome-oriented narrative. Reframe, but never fabricate.
+    * **TONE ADAPTATION:** If the user prompt includes explicit "Writing Guidance" (voice, tone, style), you MUST adopt that exact voice and tone for the entire letter.
+
+    ### 3. Structural & Formatting Output
+
+    * **SALUTATION:** Address the letter to the specific hiring name if provided. If no name is given, use exactly "Dear hiring team,".
+    * **LAYOUT:** You must follow a standard business layout:
+      1. Greeting
+      2. Opening paragraph (expressing interest)
+      3. 2 to 3 body paragraphs (highlighting relevant, factual experience)
+      4. Closing paragraph
+    * **NO TABLES:** Do NOT output markdown tables under any circumstances. Use standard bulleted lists if you need to display structured data.
+  PROMPT
+
+  GOOGLE_RESUME_PROMPT = <<~PROMPT
+    You are an expert resume writer and layout designer. Your sole task is to draft a professional, tailored resume based strictly on the provided candidate facts and target job description.
+
+    ### 1. Absolute Factual Constraints
+
+    * **ZERO FABRICATION:** Use ONLY the facts provided. Never invent companies, job titles, employment dates, metrics, or technical skills.
+    * **ZERO INFLATION:** Do not upgrade titles or scale. If the text says "assisted with project," do not write "managed project." Stick exactly to the scope provided.
+    * **THE GAP RULE:** If the target job description requires a core skill or technology that the candidate lacks, do not include it in the resume. Instead, list it at the very bottom in a "Notes" section.
+
+    ### 2. Tailoring & Syntax Rules
+
+    * **RELEVANCE FILTERING:** Select and prioritize the candidate achievements and responsibilities that directly map to the keywords and requirements in the target job description.
+    * **ACTION-ORIENTED DICTION:** Format all bullet points starting with strong, active professional verbs (e.g., "Developed," "Optimized," "Led").
+    * **OUTCOME FOCUS:** Structure bullets to emphasize tangible business outcomes or exact metrics whenever they are available in the facts.
+
+    ### 3. Structural & Formatting Output
+
+    * **LAYOUT SEQUENCE:** You must output the resume in the following exact markdown layout:
+      1. Professional Summary (2-3 sentences max)
+      2. Core Skills (Categorized bulleted list)
+      3. Professional Experience (Chronological, with Company, Title, Dates, and Bullet Points)
+      4. Education & Certifications
+    * **NO TABLES:** Do NOT output markdown tables under any circumstances. Use bulleted lists for skills and technical tools.
+    * **MARKDOWN PURITY:** Use standard Markdown headers (#, ##, ###) and bold text (**) for emphasis. Avoid custom HTML formatting tags inside the output body.
   PROMPT
 
   RESUME_SYSTEM_PROMPT = <<~PROMPT
@@ -115,6 +178,9 @@ class ResumeGenerator
       so in a "Note:" line.
     - Keep bullets concise and outcome-oriented, based strictly on the facts.
     - If writing guidance is included, follow it: match that voice and tone exactly.
+    - Do NOT use markdown tables. Use bulleted lists instead.
+    - Prefer direct quotes from the facts. Only paraphrase to summarize —
+      never invent details or imply expertise without supporting records.
 
     Structure: a short summary, then Skills (grouped by the given taxonomies),
     then Work Experience (roles with dates and bullets), then Projects.
@@ -135,6 +201,9 @@ class ResumeGenerator
       so in a "Note:" line.
     - Keep paragraphs focused and outcome-oriented, based strictly on the facts.
     - If writing guidance is included, follow it: match that voice and tone exactly.
+    - Do NOT use markdown tables. Use bulleted lists instead.
+    - Prefer direct quotes from the facts. Only paraphrase to summarize —
+      never invent details or imply expertise without supporting records.
 
     Structure: a greeting, an opening paragraph expressing interest, 2-3 body
     paragraphs highlighting relevant experience, and a closing paragraph.
@@ -187,10 +256,13 @@ class ResumeGenerator
     Role.chronological.map do |role|
       dates = [ role.start_date, role.end_date ].compact.map(&:iso8601).join(" to ")
       <<~TEXT
+      BEGIN SECTION — #{role.id}
         ### #{role.title} at #{role.company} (#{dates})
         #{compact ? clip(role.summary, 250) : role.summary}
         #{compact ? clip(role.body, 600) : role.body}
-        Tags: #{role.tag_list.join(", ")}
+
+        (Tags: #{role.tag_list.join(", ")})
+      END SECTION — #{role.id}
       TEXT
     end.join("\n")
   end
@@ -281,20 +353,35 @@ class ResumeGenerator
     guidance = kind_writing_guidance(kind: kind)
     output_type = kind == "cover_letter" ? "cover letter" : "resume"
 
+    meta = if guidance.present?
+                 <<~META
+                 <meta>
+                 #{guidance}
+                 </meta>
+                 META
+               else
+                 ""
+               end
+
     prompt = <<~PROMPT
-      Target role/focus: #{directive}.
+Target role/focus: #{directive}.
 
-      The job posting for this application:
+<job_description>
+#{application.description}
+</job_description>
 
-      #{application.description}
+<source_materials>
+#{facts}
+</source_materials>
 
-      Here is everything currently known about the candidate:
+#{meta}
 
-      #{facts}
+### Task Request
+Based strictly on the constraints in your system instructions, draft a professional #{output_type} for Example User tailored to the <job_description> using ONLY the facts provided inside <source_materials>.
 
-      Produce a #{output_type} tailored to this posting.
+If the job description requires critical qualifications not found in the source materials, do not invent them; instead, list them in a "Notes" section at the absolute end of your response.
     PROMPT
-    prompt += "\n\nWriting guidance:\n\n#{guidance}" if guidance.present?
+    # prompt += "\n\nWriting guidance:\n\n#{guidance}" if guidance.present?
     prompt
   end
 
@@ -304,13 +391,19 @@ class ResumeGenerator
 
     if include_roles
       roles = app_tags.any? ? intersected_roles(app_tags) : Role.chronological
-      sections << "## Roles\n\n" + roles_section_from(roles, compact: true)
+      sections << "\n<roles>\n"
+      sections << roles_section_from(roles, compact: false)
+      sections << "\n</roles>\n"
     end
 
     if include_projects
       projects = app_tags.any? ? intersected_projects(app_tags) : Project.featured
-      sections << "## Projects\n\n" + projects_section_from(projects, compact: true)
+      sections << "\n<projects>\n"
+      sections << projects_section_from(projects, compact: false)
+      sections << "\n</projects>\n"
     end
+
+    # TODO: include posts
 
     sections << "## Skills (from tags)\n\n" + skills_section
     sections.compact.join("\n")
@@ -324,25 +417,52 @@ class ResumeGenerator
     Project.featured.select { |p| (p.tag_list & app_tags).any? }
   end
 
+  def build_tags_attr_string(tag_list)
+    grouped_tags = tag_list.each_with_object(Hash.new { |h, k| h[k] = [] }) do |tag, hash|
+      category, value = tag.split(':', 2)
+      hash[category] << value if value
+    end
+
+    # Build the attribute string (e.g., skills="api backend" tools="aws docker")
+    tags_attr_string = grouped_tags.map { |category, values| "#{category}=\"#{values.join(' ')}\"" }.join(' ')
+
+    tags_attr_string
+  end
+
   def roles_section_from(roles, compact: false)
     roles.map do |role|
       dates = [ role.start_date, role.end_date ].compact.map(&:iso8601).join(" to ")
+      tags_attr = build_tags_attr_string(role.tag_list)
       <<~TEXT
-        ### #{role.title} at #{role.company} (#{dates})
+        <role id="#{role.id}" title="#{role.title}" #{tags_attr}>
+        # #{role.title} at #{role.company}
+        #{dates}
         #{compact ? clip(role.summary, 250) : role.summary}
+
         #{compact ? clip(role.body, 600) : role.body}
-        Tags: #{role.tag_list.join(", ")}
+        </role>
       TEXT
     end.join("\n")
   end
 
   def projects_section_from(projects, compact: false)
     projects.map do |project|
+      tags_attr = build_tags_attr_string(project.tag_list)
+
+      role = if project.role.present?
+               "role=\"#{project.role.id}\""
+             else
+               ""
+             end
+
       <<~TEXT
-        ### #{project.title} (#{project.status})
+        <project id="#{project.id}" title="#{project.title}" #{role} status="#{project.status}" #{tags_attr}>
+        # #{project.title}
+
         #{compact ? clip(project.summary, 200) : project.summary}
+
         #{compact ? clip(project.body, 400) : project.body}
-        Tags: #{project.tag_list.join(", ")}
+        </project>
       TEXT
     end.join("\n")
   end
@@ -354,8 +474,13 @@ class ResumeGenerator
       .where(taxonomies: { slug: taxonomy_name }, tags: { name: tag_name })
       .order(:title)
       .map do |post|
-        labels = post.tag_list.select { |t| t.start_with?("meta:") }.join(", ")
-        "### #{post.title} (#{labels})\n\n#{clip(post.body, 500)}"
+        # labels = post.tag_list.select { |t| t.start_with?("meta:") }.join(", ")
+        <<~LINES
+        <#{tag_name} id="#{post.id}">
+        # #{post.title}
+        #{post.body}
+        </#{tag_name}>
+        LINES
       end
   end
 end
