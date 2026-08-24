@@ -14,3 +14,39 @@
     </li>
   <% end %>
 </ul>
+
+<!--
+<div class="relative overflow-x-auto bg-white rounded-lg border border-stone-300 border-default">
+  <table class="w-full">
+    <thead class="text-xs uppercase whitespace-nowrap bg-stone-100 rounded-lg border-collapse">
+      <tr class="text-left">
+        <th class="px-2 py-1">name</th>
+        <th class="px-2 py-1">added</th>
+        <th class="px-2 py-1">status</th>
+        <th class="px-2 py-1">resume</th>
+        <th class="px-2 py-1">letter</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @job_applications.each do |application| %>
+        <tr class="border-t border-stone-200">
+          <%# <td class="px-2 py-1 whitespace-nowrap"> <%= application.label %1> </td> %>
+          <td class="px-2 py-1 whitespace-nowrap">
+            <%= link_to application.label, job_application_path(application), class: "font-medium text-stone-900 hover:underline" %>
+          </td>
+          <td class="px-2 py-1 whitespace-nowrap text-xs text-stone-500"> <%= application.created_at&.strftime("%B %d, %Y") %> </td>
+          <td class="px-2 py-1 text-xs text-stone-500"> <%= application.status %> </td>
+          <td class="px-2 py-1 text-xs text-stone-500"> <%= application.has_favorited_resume_draft ? "Yes"  : "No" %> </td>
+          <td class="px-2 py-1 text-xs text-stone-500"> <%= application.has_favorited_resume_draft ? "Yes"  : "No" %> </td>
+        </tr>
+        <tr>
+          <td colspan="5" class="px-2 pb-2">
+            <%= render "shared/tags", tags: application.tag_list %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+-->

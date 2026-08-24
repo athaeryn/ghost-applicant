@@ -18,6 +18,10 @@ class Project < ApplicationRecord
     slug
   end
 
+  def posts_count
+    posts.count
+  end
+
   private
 
   def set_slug

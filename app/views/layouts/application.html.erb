@@ -20,8 +20,9 @@
         <nav class="flex gap-4 text-sm text-stone-600">
           <%= link_to "Posts", posts_path, class: "hover:text-stone-900" %>
           <%= link_to "Projects", projects_path, class: "hover:text-stone-900" %>
-          <%= link_to "History", roles_path, class: "hover:text-stone-900" %>
-          <%= link_to "Jobs", job_applications_path, class: "hover:text-stone-900" %>
+          <%= link_to "Roles", roles_path, class: "hover:text-stone-900" %>
+          <span class="text-stone-300">|</span>
+          <%= link_to "Applications", job_applications_path, class: "hover:text-stone-900" %>
           <span class="text-stone-300">|</span>
           <%= link_to "Admin", admin_path, class: "hover:text-stone-900" %>
         </nav>
@@ -40,7 +41,7 @@
 
     <footer class="border-t border-stone-200 bg-white">
       <div class="mx-auto max-w-3xl px-4 py-6 text-xs text-stone-400">
-        Written entirely from this repo — content and wiring supplied over the built-in MCP server.
+        (connect to MCP server: http://localhost:3000/mcp)
       </div>
     </footer>
   </body>

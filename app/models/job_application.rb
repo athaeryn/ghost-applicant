@@ -17,6 +17,14 @@ class JobApplication < ApplicationRecord
     parts.compact.join(" ").presence || url.presence || "Untitled application"
   end
 
+  def has_favorited_resume_draft
+    application_drafts.resumes.where(favorited: true).exists?
+  end
+
+  def has_favorited_cover_letter_draft
+    application_drafts.cover_letters.where(favorited: true).exists?
+  end
+
   private
 
   def at_least_one_descriptive_field
