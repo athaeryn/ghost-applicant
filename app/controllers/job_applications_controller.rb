@@ -11,7 +11,12 @@ class JobApplicationsController < ApplicationController
     @job_application = JobApplication.find(params[:id])
     generator = ResumeGenerator.new
     kind = params[:kind] || "resume"
-    @system_prompt, @user_prompt = generator.preview_prompt(@job_application, kind: kind)
+    @selection = begin
+      generator.select_records(@job_application, kind: kind)
+    rescue LmStudioError
+      { selected: [], notes: "", fallback: true }
+    end
+    @system_prompt, @user_prompt = generator.preview_prompt(@job_application, kind: kind, selection: @selection)
   end
 
   def analyze

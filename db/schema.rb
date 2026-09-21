@@ -10,16 +10,20 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_08_17_000017) do
+ActiveRecord::Schema[8.1].define(version: 2026_09_22_000001) do
   create_table "application_drafts", force: :cascade do |t|
     t.text "body"
     t.datetime "created_at", null: false
     t.boolean "favorited", default: false, null: false
+    t.text "feedback"
     t.integer "job_application_id", null: false
     t.string "kind", null: false
     t.string "label"
+    t.integer "parent_draft_id"
+    t.json "selection"
     t.datetime "updated_at", null: false
     t.index ["job_application_id"], name: "index_application_drafts_on_job_application_id"
+    t.index ["parent_draft_id"], name: "index_application_drafts_on_parent_draft_id"
   end
 
   create_table "generated_resumes", force: :cascade do |t|
@@ -147,6 +151,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_08_17_000017) do
     t.index ["slug"], name: "index_taxonomies_on_slug", unique: true
   end
 
+  add_foreign_key "application_drafts", "application_drafts", column: "parent_draft_id"
   add_foreign_key "application_drafts", "job_applications"
   add_foreign_key "job_application_quotes", "job_applications"
   add_foreign_key "projects", "roles"

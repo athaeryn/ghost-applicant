@@ -15,8 +15,8 @@ class LmStudioClient
     @model = model.presence || ENV["LM_STUDIO_MODEL"].presence || default_model
   end
 
-  def chat(messages, temperature: 0.7, max_tokens: 2048)
-    response = http_request(build_request(messages, temperature, max_tokens))
+  def chat(messages, temperature: 0.7, max_tokens: 2048, response_format: nil)
+    response = http_request(build_request(messages, temperature, max_tokens, response_format))
     parse(response)
   rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, Net::OpenTimeout
     raise LmStudioUnavailableError, "LM Studio is not reachable at #{base_url}. Is the server running?"
@@ -37,12 +37,13 @@ class LmStudioClient
     end
   end
 
-  def build_request(messages, temperature, max_tokens)
+  def build_request(messages, temperature, max_tokens, response_format = nil)
     uri = URI.join("#{base_url.chomp("/")}/", CHAT_ENDPOINT)
     request = Net::HTTP::Post.new(uri)
     request["Content-Type"] = "application/json"
     request["Accept"] = "application/json"
     body = { model: model, messages: messages, temperature: temperature, max_tokens: max_tokens }
+    body[:response_format] = response_format if response_format
     body.delete(:model) if model.nil?
     request.body = JSON.generate(body)
     request

@@ -53,12 +53,13 @@ class DraftResumeTool < MCP::Tool
       focus: { type: "string", description: "Optional emphasis beyond the job title" },
       include_projects: { type: "boolean", description: "Include projects in the facts (default true)" },
       include_roles: { type: "boolean", description: "Include roles in the facts (default true)" },
+      use_selection: { type: "boolean", description: "Run the relevance selector first to rank records against the posting (default true; falls back to tag intersection)" },
       model: { type: "string", description: "Override the LM Studio model name" }
     },
     required: [ "job_application_id" ]
   )
 
-  def self.call(job_application_id:, kind: "resume", focus: nil, include_projects: nil, include_roles: nil, model: nil, client: nil, server_context: nil)
+  def self.call(job_application_id:, kind: "resume", focus: nil, include_projects: nil, include_roles: nil, use_selection: nil, model: nil, client: nil, server_context: nil)
     application = JobApplication.find_by(id: job_application_id.to_i)
     return MCP::Tool::Response.new([ { type: "text", text: "Error: job application not found" } ]) unless application
     return MCP::Tool::Response.new([ { type: "text", text: "Error: kind must be resume or cover_letter" } ]) unless ApplicationDraft::KINDS.include?(kind)
@@ -70,6 +71,7 @@ class DraftResumeTool < MCP::Tool
       focus: focus,
       include_projects: include_projects != false,
       include_roles: include_roles != false,
+      use_selection: use_selection != false,
       kind: kind
     )
 

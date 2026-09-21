@@ -8,7 +8,7 @@ class StubLmStudioClient
     @model = model
   end
 
-  def chat(messages, temperature: nil, max_tokens: nil)
+  def chat(messages, temperature: nil, max_tokens: nil, response_format: nil)
     @last_messages = messages
     "## Experience\nSigned, fake resume."
   end
@@ -195,5 +195,126 @@ class ResumeGeneratorTest < ActiveSupport::TestCase
     cover_prompt = client.last_messages.last[:content]
     assert_includes cover_prompt, "Be warm"
     assert_includes cover_prompt, "Be professional"
+  end
+
+  test "select_records parses relevance scores and notes" do
+    role = Role.create!(title: "Rails Dev", company: "Acme", start_date: Date.new(2020, 1, 1), body: "Built Rails apps.")
+    role.add_tags("tool:rails")
+    app = JobApplication.create!(title: "Rails Dev", company: "Acme", description: "Build Rails things.")
+
+    fake = Object.new
+    def fake.model; "test-model"; end
+    def fake.chat(messages, temperature: nil, max_tokens: nil, response_format: nil)
+      @messages = messages
+      JSON.generate(
+        selected: [ { type: "role", id: Role.first.id, relevance: 2, reason: "exact match" } ],
+        notes: "rails role fits"
+      )
+    end
+
+    result = ResumeGenerator.new(client: fake).select_records(app)
+    refute result[:fallback]
+    assert_equal "role", result[:selected].first[:type]
+    assert_equal 2, result[:selected].first[:relevance]
+    assert_equal "rails role fits", result[:notes]
+  end
+
+  test "select_records strips code fences and drops unknown ids" do
+    Role.create!(title: "Eng", company: "Acme", start_date: Date.new(2020, 1, 1), body: "b")
+    app = JobApplication.create!(title: "Dev", company: "X", description: "Build things.")
+
+    fake = Object.new
+    def fake.model; "test-model"; end
+    def fake.chat(*, **)
+      "```json\n" + JSON.generate(
+        selected: [
+          { type: "role", id: Role.first.id, relevance: 9, reason: "clamped" },
+          { type: "project", id: 999_999, relevance: 2, reason: "ghost" }
+        ]
+      ) + "\n```"
+    end
+
+    result = ResumeGenerator.new(client: fake).select_records(app)
+    assert_equal 1, result[:selected].size
+    assert_equal 2, result[:selected].first[:relevance]
+  end
+
+  test "select_records falls back on invalid JSON" do
+    Role.create!(title: "Eng", company: "Acme", start_date: Date.new(2020, 1, 1), body: "b")
+    app = JobApplication.create!(title: "Dev", company: "X", description: "Build things.")
+
+    fake = Object.new
+    def fake.model; "test-model"; end
+    def fake.chat(*, **); "not json at all"; end
+
+    result = ResumeGenerator.new(client: fake).select_records(app)
+    assert result[:fallback]
+    assert_empty result[:selected]
+  end
+
+  test "generate_for_application uses selector over exact tag overlap" do
+    # Tag-intersection would drop this role (tool:rails vs skill:ruby), but
+    # the selector keeps it on semantic fit.
+    rails_role = Role.create!(title: "Rails Dev", company: "Acme", start_date: Date.new(2020, 1, 1), body: "Built Rails apps.")
+    rails_role.add_tags("tool:rails")
+    python_role = Role.create!(title: "Python Dev", company: "Beta", start_date: Date.new(2021, 1, 1), body: "Built Python apps.")
+    python_role.add_tags("tool:python")
+    kept = Project.create!(title: "Kept", body: "relevant", started_at: Date.new(2021, 1, 1))
+    kept.add_tags("tool:rails")
+    dropped = Project.create!(title: "Dropped", body: "unrelated", started_at: Date.new(2021, 1, 1))
+    dropped.add_tags("tool:python")
+
+    app = JobApplication.create!(title: "Ruby Dev", company: "Acme", description: "Ruby on Rails role.")
+    app.add_tags("skill:ruby")
+
+    calls = []
+    fake = Object.new
+    fake.define_singleton_method(:model) { "test-model" }
+    fake.define_singleton_method(:chat) do |messages, temperature: nil, max_tokens: nil, response_format: nil|
+      calls << messages
+      if response_format
+        JSON.generate(
+          selected: [
+            { type: "role", id: Role.find_by(company: "Acme").id, relevance: 2, reason: "Rails is Ruby-adjacent" },
+            { type: "role", id: Role.find_by(company: "Beta").id, relevance: 1, reason: "context" },
+            { type: "project", id: Project.find_by(title: "Kept").id, relevance: 2, reason: "rails" },
+            { type: "project", id: Project.find_by(title: "Dropped").id, relevance: 0, reason: "unrelated" }
+          ],
+          notes: "prefer rails"
+        )
+      else
+        "draft body"
+      end
+    end
+
+    generator = ResumeGenerator.new(client: fake)
+    generator.generate_for_application(app)
+
+    assert_equal 2, calls.size, "expected selector call + generation call"
+    generation_prompt = calls.last.last[:content]
+    assert_includes generation_prompt, "Acme"
+    assert_includes generation_prompt, "Beta", "all roles are always included"
+    assert_includes generation_prompt, "Kept"
+    refute_includes generation_prompt, "Dropped"
+    assert_includes generation_prompt, "prefer rails"
+  end
+
+  test "generate_for_application falls back to tag intersection when selector fails" do
+    rails_role = Role.create!(title: "Rails Dev", company: "Acme", start_date: Date.new(2020, 1, 1), body: "Built Rails apps.")
+    rails_role.add_tags("tool:rails")
+    python_role = Role.create!(title: "Python Dev", company: "Beta", start_date: Date.new(2021, 1, 1), body: "Built Python apps.")
+    python_role.add_tags("tool:python")
+
+    app = JobApplication.create!(title: "Rails Dev", company: "Acme", description: "Build Rails things.")
+    app.add_tags("tool:rails")
+
+    fake = Object.new
+    fake.define_singleton_method(:model) { "test-model" }
+    fake.define_singleton_method(:chat) do |messages, temperature: nil, max_tokens: nil, response_format: nil|
+      response_format ? "garbage" : "draft body"
+    end
+
+    generator = ResumeGenerator.new(client: fake)
+    assert_equal "draft body", generator.generate_for_application(app)
   end
 end

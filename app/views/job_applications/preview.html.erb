@@ -18,6 +18,25 @@
   </p>
 
   <div class="mt-8">
+    <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">Relevance selection</h2>
+    <% if @selection && !@selection[:fallback] %>
+      <p class="mt-2 text-sm text-stone-600"><%= @selection[:selected].count { |s| s[:relevance] >= 1 } %> kept, <%= @selection[:selected].count { |s| s[:relevance] == 0 } %> omitted. All roles always included.</p>
+      <% if @selection[:notes].present? %>
+        <p class="mt-1 text-sm text-stone-500 italic"><%= @selection[:notes] %></p>
+      <% end %>
+      <ul class="mt-2 space-y-1 text-sm">
+        <% @selection[:selected].each do |s| %>
+          <li class="<%= s[:relevance] == 0 ? "text-stone-400 line-through" : "text-stone-700" %>">
+            <strong><%= s[:type] %>#<%= s[:id] %></strong> [<%= s[:relevance] %>] <%= s[:reason] %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="mt-2 text-sm text-amber-700">Selector unavailable — showing tag-intersection fallback facts.</p>
+    <% end %>
+  </div>
+
+  <div class="mt-8">
     <h2 class="text-sm font-semibold uppercase tracking-wider text-stone-400">System prompt <span class="text-xs text-stone-400 normal-case">(~<%= system_tokens %> tokens)</span></h2>
     <pre class="mt-2 overflow-x-auto rounded border border-2 border-gray-200 bg-white p-4 text-sm whitespace-pre-wrap"><%= @system_prompt %></pre>
   </div>
