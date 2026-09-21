@@ -10,6 +10,8 @@
       </p>
     </div>
     <div class="flex shrink-0 items-center gap-3 text-sm">
+      <button onclick="navigator.clipboard.writeText(<%= @draft.body.to_json %>).then(() => { this.textContent = 'Copied!'; setTimeout(() => { this.textContent = 'Copy markdown' }, 2000) })"
+        class="text-stone-600 hover:underline">Copy markdown</button>
       <%= button_to(@draft.favorited? ? "Unfavorite" : "Favorite",
             toggle_favorite_job_application_draft_path(@job_application, @draft),
             method: :post,

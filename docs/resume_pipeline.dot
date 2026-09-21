@@ -1,0 +1,70 @@
+digraph resume_pipeline {
+  rankdir = LR;
+  splines = ortho;
+  node [shape = box, style = "rounded,filled", fontname = "Helvetica", fontsize = 11];
+  edge [fontname = "Helvetica", fontsize = 10];
+
+  subgraph cluster_mcp {
+    label = "MCP surface (streamable HTTP at /mcp)";
+    style = dashed;
+    agent [label = "MCP client / agent", fillcolor = "#efe6ff"];
+    gen_tool   [label = "generate_resume\n(GenerateResumeTool)", fillcolor = "#ffffff"];
+    draft_tool [label = "draft_resume\n(DraftResumeTool)", fillcolor = "#ffffff"];
+  }
+
+  subgraph cluster_gen {
+    label = "ResumeGenerator service";
+    style = dashed;
+    fact_sheet [label = "build_fact_sheet\nroles + projects + skills\n(compact clamps bodies)", fillcolor = "#e3f2fd"];
+    guidance [label = "writing_guidance\npublished meta:* posts", fillcolor = "#e3f2fd"];
+    prompt_gen [label = "SYSTEM_PROMPT + build_prompt", fillcolor = "#e3f2fd"];
+    prompt_app [label = "APPLICATION_SYSTEM_PROMPT\n+ build_application_prompt\n(job description clipped)", fillcolor = "#e3f2fd"];
+  }
+
+  subgraph cluster_data {
+    label = "Sources of truth (SQLite)";
+    style = dashed;
+    facts_db [label = "Role / Project / Tag / Taxonomy", fillcolor = "#f1f8e9"];
+    app_db   [label = "JobApplication\n(pasted job description)", fillcolor = "#f1f8e9"];
+  }
+
+  subgraph cluster_lm {
+    label = "LmStudioClient (local LLM)";
+    style = dashed;
+    model_res [label = "model resolution:\narg > LM_STUDIO_MODEL > GET /v1/models", fillcolor = "#fff3e0"];
+    chat [label = "POST /v1/chat/completions\ntemp 0.3-0.4, max_tokens 2048\n5s open / 120s read timeout", fillcolor = "#fff3e0"];
+    errors [label = "LmStudioUnavailableError | LmStudioError", fillcolor = "#ffebee"];
+  }
+
+  subgraph cluster_out {
+    label = "Persistence + surfacing";
+    style = dashed;
+    gresume [label = "GeneratedResume\n(generate_resume)", fillcolor = "#ede7f6"];
+    draft   [label = "ApplicationDraft\nkind: resume, label: model\n(draft_resume)", fillcolor = "#ede7f6"];
+    viewer  [label = "Web: /job_applications/:id/drafts/:id\nMCP: get_job_application, list_resumes", fillcolor = "#ede7f6"];
+  }
+
+  agent -> gen_tool;
+  agent -> draft_tool;
+
+  gen_tool   -> fact_sheet [label = "focus, include_*"];
+  draft_tool -> app_db    [label = "find_by job_application_id"];
+  draft_tool -> fact_sheet [label = "focus, include_*"];
+  facts_db   -> fact_sheet;
+  facts_db   -> guidance;
+
+  fact_sheet -> prompt_gen;
+  guidance   -> prompt_gen;
+  guidance   -> prompt_app;
+  app_db     -> prompt_app [label = "description"];
+  fact_sheet -> prompt_app;
+
+  prompt_gen -> model_res;
+  prompt_app -> model_res;
+  model_res  -> chat;
+  chat -> errors [label = "non-2xx / unreachable"];
+  chat -> gresume [label = "markdown text"];
+  chat -> draft   [label = "markdown text"];
+  gresume -> viewer;
+  draft   -> viewer;
+}
