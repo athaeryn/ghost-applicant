@@ -207,8 +207,14 @@ class ResumeGenerator
 
   SYSTEM_PROMPT = <<~PROMPT
     You are a resume writer. You are given a factual summary of a person's
-    career (roles, projects, and written work). Produce a clean, focused
+    career (roles, projects, and written work) plus a <candidate> block
+    describing who the resume is for. Produce a clean, focused
     resume in Markdown.
+
+    The resume is for/about the person described in <candidate>. Never ask
+    who the resume is about; use that identity for the header and summary.
+    If <candidate> is empty or a placeholder, draft without a name rather
+    than inventing one.
 
     Ground rules:
     - Use ONLY the facts provided. Never invent companies, titles, dates, or skills.
@@ -238,6 +244,11 @@ class ResumeGenerator
 
     ### 2. Tailoring & Syntax Rules
 
+    * **CANDIDATE IDENTITY:** The resume is for/about the person described in
+      the <candidate> block of <source_materials>. Never ask who the resume is
+      about; use that identity for the header and Professional Summary. If
+      <candidate> is empty or a placeholder, draft without a name rather than
+      inventing one.
     * **RELEVANCE FILTERING:** Select and prioritize the candidate achievements and responsibilities that directly map to the keywords and requirements in <job_description>.
     * **RELEVANCE HINTS:** If the user prompt includes <relevance_notes> or relevance/why attributes, treat them as emphasis hints only — they never license fabrication or change the facts.
     * **REVISION OVERRIDE:** If the user prompt includes a <revision_request>, its revision instructions are the single most important part of the prompt. Rewrite the <previous_output> in place and apply every instruction point exactly, even where they conflict with other prompt guidance.
@@ -269,6 +280,11 @@ class ResumeGenerator
 
     ### 2. Narrative & Framing Rules
 
+    * **CANDIDATE IDENTITY:** The letter is for/about the person described in
+      the <candidate> block of <source_materials> — they are the author of the
+      letter. Never ask who the letter is about; use that identity for the
+      voice and sign-off. If <candidate> is empty or a placeholder, draft
+      without a name rather than inventing one.
     * **STRATEGIC SELECTION:** Read <job_description> carefully. Select and weave only the most relevant candidate facts into a compelling, outcome-oriented narrative. Reframe, but never fabricate.
     * **RELEVANCE HINTS:** If the user prompt includes <relevance_notes> or relevance/why attributes, treat them as emphasis hints only — they never license fabrication or change the facts.
     * **REVISION OVERRIDE:** If the user prompt includes a <revision_request>, its revision instructions are the single most important part of the prompt. Rewrite the <previous_output> in place and apply every instruction point exactly, even where they conflict with other prompt guidance.
@@ -291,6 +307,8 @@ class ResumeGenerator
   # compact: true clips role/project bodies to fit small local-model contexts.
   def build_fact_sheet(include_projects:, include_roles:, compact: false)
     sections = []
+    candidate = candidate_section
+    sections << candidate if candidate.present?
     sections << "## Roles\n\n" + roles_section(compact: compact) if include_roles
     sections << "## Projects\n\n" + projects_section(compact: compact) if include_projects
     sections << "## Skills (from tags)\n\n" + skills_section
@@ -298,11 +316,13 @@ class ResumeGenerator
   end
 
   # Published posts tagged under the "meta" taxonomy (e.g. meta:style-guide,
-  # meta:bio) become writing guidance for the generator.
+  # meta:bio) become writing guidance for the generator. The meta:identity
+  # post is excluded here — it goes in the <candidate> block instead.
   def writing_guidance
     meta_posts = Post.published.distinct
       .joins(taggings: { tag: :taxonomy })
       .where(taxonomies: { slug: "meta" })
+      .where.not(tags: { slug: "identity" })
       .order(:title)
 
     meta_posts.map do |post|
@@ -322,6 +342,32 @@ class ResumeGenerator
     parts.concat(context_posts)
     parts.concat(example_posts)
     parts.join("\n\n")
+  end
+
+  # The candidate identity: the single published post tagged meta:identity
+  # (a freeform "who this site is about" bio). Rendered as a <candidate>
+  # block at the top of <source_materials> so the model never has to ask
+  # who the draft is for. Returns nil when no such post exists.
+  def identity_post
+    taxonomy_name, _, tag_name = "meta:identity".partition(":")
+    Post.published.distinct
+      .joins(taggings: { tag: :taxonomy })
+      .where(taxonomies: { slug: taxonomy_name }, tags: { name: tag_name })
+      .order(:title)
+      .first
+  end
+
+  def candidate_section
+    post = identity_post
+    return "" unless post
+
+    <<~TEXT
+      <candidate id="#{post.id}">
+      # #{post.title}
+
+      #{post.body}
+      </candidate>
+    TEXT
   end
 
   def clip(text, max_chars)
@@ -463,7 +509,7 @@ class ResumeGenerator
     task_request = if revision.present?
                      "Revise the <previous_output> in <revision_request> so it fully satisfies the target role/focus, applying every point in the revision instructions."
     else
-                     "Based strictly on the constraints in your system instructions, draft a professional #{output_type} for Example User tailored to the <job_description> using ONLY the facts provided inside <source_materials>."
+                     "Based strictly on the constraints in your system instructions, draft a professional #{output_type} for the person described in <candidate> tailored to the <job_description> using ONLY the facts provided inside <source_materials>."
     end
 
     task_footer = if revision.present?
@@ -596,6 +642,8 @@ Target role/focus: #{directive}.
     rel_of = ->(type, id) { by_key[[ type, id ]]&.first&.dig(:relevance) || 1 }
     why_of = ->(type, id) { by_key[[ type, id ]]&.first&.dig(:reason).to_s }
     sections = []
+    candidate = candidate_section
+    sections << candidate if candidate.present?
 
     if include_roles
       sections << "\n<roles>\n"
@@ -623,6 +671,8 @@ Target role/focus: #{directive}.
   def build_tag_intersected_facts(application, kind:, include_projects:, include_roles:)
     app_tags = application.tag_list
     sections = []
+    candidate = candidate_section
+    sections << candidate if candidate.present?
 
     if include_roles
       roles = app_tags.any? ? intersected_roles(app_tags) : Role.chronological

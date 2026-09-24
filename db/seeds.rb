@@ -121,3 +121,17 @@ style_guide.update!(
   published_at: Time.current
 )
 style_guide.replace_tags([ "meta:style-guide" ])
+
+identity = Post.find_or_initialize_by(slug: "identity")
+identity.update!(
+  title: "Identity",
+  summary: "Who this site is about — used as the <candidate> block in generation prompts.",
+  body: <<~BODY,
+    Example User — replace this with a real bio via the admin posts UI or the
+    `update_post` MCP tool. Keep exactly one published post tagged
+    `meta:identity`; it tells the resume/cover-letter prompts who the drafts
+    are for.
+  BODY
+  published_at: Time.current
+)
+identity.replace_tags([ "meta:identity" ])

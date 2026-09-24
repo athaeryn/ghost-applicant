@@ -98,6 +98,13 @@ and tags automatically. Typical taxonomies: `skill`, `tool`, `topic`,
 `industry` — but invent whatever fits; it's a free-form catalog, not a fixed enum.
 Tag browsing URLs: `/tags/<taxonomy>` and `/tags/<taxonomy>/<tag>`.
 
+The `meta` taxonomy steers generation: `meta:style-guide` and
+`meta:example-*` posts become voice guidance, `meta:context` posts add
+background, and the single published `meta:identity` post (a freeform "who
+this site is about" bio) is rendered as the `<candidate>` block at the top of
+`<source_materials>` so prompts always name who the drafts are for. Keep
+exactly one `meta:identity` post.
+
 ## Resume generation with LM Studio
 
 `generate_resume` (or the `ResumeGenerator` service) builds a fact sheet from

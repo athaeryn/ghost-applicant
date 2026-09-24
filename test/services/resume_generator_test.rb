@@ -197,6 +197,54 @@ class ResumeGeneratorTest < ActiveSupport::TestCase
     assert_includes cover_prompt, "Be professional"
   end
 
+  test "generate_for_application includes the meta:identity post as a candidate block" do
+    Role.create!(title: "Eng", company: "Acme", start_date: Date.new(2020, 1, 1))
+
+    identity = Post.create!(title: "Who I Am", body: "Jane Example, a backend engineer.", published_at: Time.current)
+    identity.add_tags("meta:identity")
+
+    app = JobApplication.create!(title: "Dev", company: "X", description: "Build things.")
+
+    client = StubLmStudioClient.new
+    generator = ResumeGenerator.new(client: client)
+    generator.generate_for_application(app, kind: "resume")
+
+    prompt = client.last_messages.last[:content]
+    assert_includes prompt, "<candidate id="
+    assert_includes prompt, "Jane Example, a backend engineer."
+    assert_includes prompt, "for the person described in <candidate>"
+    refute_includes prompt, "for Example User"
+  end
+
+  test "generate_for_application omits the candidate block when no identity post exists" do
+    Role.create!(title: "Eng", company: "Acme", start_date: Date.new(2020, 1, 1))
+    app = JobApplication.create!(title: "Dev", company: "X", description: "Build things.")
+
+    client = StubLmStudioClient.new
+    generator = ResumeGenerator.new(client: client)
+    generator.generate_for_application(app, kind: "resume")
+
+    prompt = client.last_messages.last[:content]
+    refute_includes prompt, "<candidate id="
+    refute_includes prompt, "</candidate>"
+  end
+
+  test "system prompts direct the model to the candidate block" do
+    assert_includes @generator.system_prompt_for("resume"), "<candidate>"
+    assert_includes @generator.system_prompt_for("cover_letter"), "<candidate>"
+  end
+
+  test "writing_guidance excludes the identity post" do
+    identity = Post.create!(title: "Who I Am", body: "Jane Example.", published_at: Time.current)
+    identity.add_tags("meta:identity")
+    style = Post.create!(title: "Style", body: "Be concise.", published_at: Time.current)
+    style.add_tags("meta:style-guide")
+
+    guidance = @generator.writing_guidance
+    assert_includes guidance, "Be concise."
+    refute_includes guidance, "Jane Example."
+  end
+
   test "build_application_prompt frames revision feedback as the most important part" do
     app = JobApplication.create!(title: "Rails Dev", company: "Acme", description: "Build Rails things.")
 
