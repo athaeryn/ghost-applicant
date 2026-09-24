@@ -15,10 +15,15 @@ the database by a local LLM running in LM Studio.
   are created on demand at runtime — no schema changes, no fixed catalog.
 - **Embedded MCP server.** A Model Context Protocol server (official Ruby SDK,
   streamable HTTP) mounted at `/mcp` exposes tools to create/list/update/delete
-  posts, projects, and roles, manage tags, and generate resumes.
+  posts, projects, roles, and job applications, manage tags, and generate
+  resumes and tailored drafts.
 - **Local-LLM resumes.** `generate_resume` calls an LM Studio–compatible
   OpenAI API and writes resume Markdown from the tagged facts in the database.
   Nothing is invented: only facts already in the DB go in.
+- **Job application tracking.** Save job descriptions, analyze them against
+  your tag catalog, and draft tailored resumes and cover letters
+  (`draft_resume`, `redraft_draft`) — in the browser or over MCP, with
+  background jobs and a preview page showing the exact prompt.
 
 ## Quick start (Docker)
 
@@ -34,7 +39,8 @@ docker compose up -d app      # start, or: docker compose restart app
 - MCP endpoint: <http://localhost:3000/mcp>
 - Health: <http://localhost:3000/up>
 
-Bootstrap some sample content (roles, projects, posts, tags):
+Bootstrap some sample content (roles, projects, posts, tags, and a placeholder
+`meta:identity` bio):
 
 ```sh
 docker compose run --rm app bin/rails db:seed
@@ -59,7 +65,7 @@ docker compose exec -T app rm -f /app/tmp/pids/server.pid; docker compose restar
 
 A few gotchas worth remembering:
 
-- **Puma/faces one SQLite connection**, so after adding a tool, editing models, or
+- **Puma holds a single SQLite connection**, so after adding a tool, editing models, or
   writing to `storage/*.sqlite3` from outside, restart the app — an open
   connection in WAL mode won't pick up external file edits until it reconnects.
 - Puma is single-process (MCP session state lives in memory). If boot fails with
@@ -76,16 +82,17 @@ own `opencode.json` already registers it:
 
 (Start the app before opencode — and restart opencode after changing config.)
 
-Exposed tools (22):
+Exposed tools (32):
 
-| Area      | Tools                                                                                        |
-|-----------|----------------------------------------------------------------------------------------------|
-| Taxonomies| `list_taxonomies`, `create_taxonomy`                                                         |
-| Tags      | `list_tags`, `create_tag`, `tag_record`, `untag_record`, `record_tags`                       |
-| Posts     | `list_posts`, `create_post`, `update_post`, `delete_post`, `publish_post`                    |
-| Projects  | `list_projects`, `create_project`, `update_project`, `delete_project`                        |
-| Roles     | `list_roles`, `create_role`, `update_role`, `delete_role`                                    |
-| Resumes   | `generate_resume`, `list_resumes`                                                            |
+| Area            | Tools                                                                                                  |
+|-----------------|--------------------------------------------------------------------------------------------------------|
+| Taxonomies      | `list_taxonomies`, `create_taxonomy`                                                                   |
+| Tags            | `list_tags`, `create_tag`, `tag_record`, `untag_record`, `record_tags`                                 |
+| Posts           | `list_posts`, `get_post`, `create_post`, `update_post`, `delete_post`, `publish_post`                  |
+| Projects        | `list_projects`, `get_project`, `create_project`, `update_project`, `delete_project`                  |
+| Roles           | `list_roles`, `get_role`, `create_role`, `update_role`, `delete_role`                                  |
+| Job applications| `list_job_applications`, `get_job_application`, `create_job_application`, `update_job_application`, `delete_job_application` |
+| Resumes & drafts| `generate_resume`, `list_resumes`, `draft_resume`, `redraft_draft`                                     |
 
 The server runs a single process (Puma, default). The streamable HTTP transport
 keeps session state in memory, which is fine for local single-user use.
@@ -108,7 +115,7 @@ exactly one `meta:identity` post.
 ## Resume generation with LM Studio
 
 `generate_resume` (or the `ResumeGenerator` service) builds a fact sheet from
-roles, projects, and per-taxonomy skill tags, then chats with a local model.
+roles, projects, posts, and per-taxonomy skill tags, then chats with a local model.
 
 Configure via environment (defaults work for a stock LM Studio on the host):
 
@@ -130,6 +137,19 @@ If LM Studio runs on the host, `host.docker.internal` reaches it from the
 container (Docker Desktop). Local non-Docker runs fall back to
 `http://localhost:1234`.
 
+## Tailored drafts for job applications
+
+Save a posting as a job application (browser admin or `create_job_application`),
+optionally `analyze` it against your tag catalog to find matched/gap tags, then
+`draft_resume` (with `kind: resume` or `kind: cover_letter`) to generate a
+tailored draft. Generation runs a relevance selector over your roles, projects,
+and posts first, then drafts from the selected facts plus your `meta:*` voice
+guidance and `meta:identity` bio — gaps go in a trailing Notes section instead
+of being invented. Drafts can be favorited and revised with feedback
+(`redraft_draft`); long generations run as background Solid Queue jobs visible
+under Admin → Generation tasks, and `/job_applications/:id/preview` shows the
+exact system + user prompt that will be sent.
+
 ## Tests & lint
 
 ```sh
@@ -142,11 +162,12 @@ docker compose run --rm app bin/rubocop
 ```
 app/
   assets/tailwind/application.css   # Tailwind v4 input (+ .prose component styles)
-  controllers/                      # pages, posts, projects, roles, tags
+  controllers/                      # pages, posts, projects, roles, tags, job_applications (+ admin/*)
   mcp/
     mcp_support.rb                  # serializers + shared query helpers
-    tools/                          # the 22 MCP tool classes
-  models/                           # Post, Project, Role, Taxonomy, Tag, Tagging, GeneratedResume
+    tools/                          # 8 tool files (32 tools: content, tags, job apps, resumes)
+  models/                           # Post, Project, Role, Taxonomy, Tag, Tagging, GeneratedResume,
+                                    # JobApplication, ApplicationDraft, GenerationTask, JobApplicationQuote
   models/concerns/taggable.rb       # runtime taxonomy/tag tagging for records
   services/
     lm_studio_client.rb             # OpenAI-compatible client for local models
@@ -155,15 +176,11 @@ app/
 config/
   initializers/mcp.rb               # assembles MCP_SERVER and its tools
   routes.rb                         # mounts the MCP transport at /mcp
-legacy/                             # the previous opencode-only workspace (archived)
 bin/dev                             # Rails server + Tailwind watcher, binds 0.0.0.0
 ```
 
 ## Roadmap / natural next steps
 
-- Per-job resume generation: store job descriptions, generate tailored resumes,
-  and diff them against the fact base.
-- Background resume jobs via Solid Queue (already bundled).
-- Simple HTTP auth + a bare-bones browser editor for quick fixes.
-- Migrate the archived `legacy/knowledge/` into real `Role`/`Project`/`Post`
-  records via the MCP tools.
+- Simple HTTP auth for the admin UI (currently unauthenticated, local-only).
+- Remaining review backlog in `docs/issues*.md` (structured output for
+  `analyze`, generation progress feedback, tag-input validation, etc.).
