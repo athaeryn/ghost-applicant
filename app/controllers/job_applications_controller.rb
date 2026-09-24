@@ -34,32 +34,26 @@ class JobApplicationsController < ApplicationController
 
   def draft
     @job_application = JobApplication.find(params[:id])
-    generator = ResumeGenerator.new
-    content = generator.generate_for_application(@job_application, kind: "resume")
-
-    draft = @job_application.application_drafts.create!(
-      kind: "resume",
-      label: generator.client.model.presence,
-      body: content
+    task = GenerationTask.create!(
+      job_application: @job_application,
+      kind: 0,
+      generation_kind: 0,
+      focus: params[:focus]
     )
-    redirect_to job_application_draft_path(@job_application, draft), notice: "Resume draft saved."
-  rescue LmStudioUnavailableError, LmStudioError => e
-    redirect_to job_application_path(@job_application), alert: "Draft failed: #{e.message}"
+    ResumeGenerationJob.perform_later(generation_task_id: task.id)
+    redirect_to job_application_path(@job_application), notice: "Resume generation task queued."
   end
 
   def draft_cover_letter
     @job_application = JobApplication.find(params[:id])
-    generator = ResumeGenerator.new
-    content = generator.generate_for_application(@job_application, kind: "cover_letter")
-
-    draft = @job_application.application_drafts.create!(
-      kind: "cover_letter",
-      label: generator.client.model.presence,
-      body: content
+    task = GenerationTask.create!(
+      job_application: @job_application,
+      kind: 0,
+      generation_kind: 1,
+      focus: params[:focus]
     )
-    redirect_to job_application_draft_path(@job_application, draft), notice: "Cover letter draft saved."
-  rescue LmStudioUnavailableError, LmStudioError => e
-    redirect_to job_application_path(@job_application), alert: "Draft failed: #{e.message}"
+    ResumeGenerationJob.perform_later(generation_task_id: task.id)
+    redirect_to job_application_path(@job_application), notice: "Cover letter generation task queued."
   end
 
   def add_tag

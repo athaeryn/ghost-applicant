@@ -197,6 +197,35 @@ class ResumeGeneratorTest < ActiveSupport::TestCase
     assert_includes cover_prompt, "Be professional"
   end
 
+  test "build_application_prompt frames revision feedback as the most important part" do
+    app = JobApplication.create!(title: "Rails Dev", company: "Acme", description: "Build Rails things.")
+
+    prompt = @generator.build_application_prompt(
+      app, "[facts]",
+      focus: "Senior Engineer", kind: "resume",
+      relevance_notes: "selection notes only",
+      revision_feedback: "Shorten the summary dramatically.",
+      previous_output: "# Original draft body"
+    )
+
+    assert_includes prompt, "<revision_request>"
+    assert_includes prompt, "<previous_output>\n# Original draft body\n</previous_output>"
+    assert_includes prompt, "REVISION INSTRUCTIONS (MOST IMPORTANT"
+    assert_includes prompt, "Shorten the summary dramatically."
+    assert_includes prompt, "Revise the <previous_output> in <revision_request>"
+    # The selection rationale stays a low-priority hint, separate from the revision.
+    assert_includes prompt, "<relevance_notes>\nselection notes only\n</relevance_notes>"
+  end
+
+  test "build_application_prompt omits revision section by default" do
+    app = JobApplication.create!(title: "Rails Dev", company: "Acme", description: "Build Rails things.")
+
+    prompt = @generator.build_application_prompt(app, "[facts]", focus: "Senior", kind: "resume")
+
+    refute_includes prompt, "revision"
+    refute_includes prompt, "<previous_output>"
+  end
+
   test "select_records parses relevance scores and notes" do
     role = Role.create!(title: "Rails Dev", company: "Acme", start_date: Date.new(2020, 1, 1), body: "Built Rails apps.")
     role.add_tags("tool:rails")

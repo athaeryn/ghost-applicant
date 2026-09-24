@@ -1,0 +1,80 @@
+<% content_for :title, "Generation Task ##{@generation_task.id}" %>
+
+<div class="flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold">Generation Task #<%= @generation_task.id %></h1>
+    <p class="mt-1 text-sm text-stone-500">
+      Application: <%= link_to @generation_task.job_application.label, job_application_path(@generation_task.job_application), class: "underline text-blue-600" %>
+    </p>
+  </div>
+  <div class="flex items-center gap-3">
+    <% if @generation_task.retryable? %>
+      <%= button_to "Retry", retry_admin_generation_task_path(@generation_task), method: :post, class: "rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700" %>
+    <% end %>
+    <%= link_to "Back to Tasks", admin_generation_tasks_path, class: "text-sm text-stone-600 hover:underline" %>
+  </div>
+</div>
+
+<div class="mt-6 grid gap-6 md:grid-cols-2">
+  <div class="rounded-lg border border-stone-200 bg-white p-6 space-y-4">
+    <h2 class="text-base font-semibold text-stone-800">Task Details</h2>
+    <dl class="space-y-2 text-sm">
+      <div class="flex justify-between">
+        <dt class="text-stone-500">Kind:</dt>
+        <dd class="font-medium"><%= @generation_task.generation_kind == 1 ? "Cover Letter" : "Resume" %></dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-stone-500">Status:</dt>
+        <dd class="font-medium">
+          <% if @generation_task.succeeded? %>
+            <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Succeeded</span>
+          <% elsif @generation_task.error.present? %>
+            <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700">Failed</span>
+          <% else %>
+            <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Running</span>
+          <% end %>
+        </dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-stone-500">Model:</dt>
+        <dd class="font-mono text-xs"><%= @generation_task.model.presence || "—" %></dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-stone-500">Started at:</dt>
+        <dd><%= @generation_task.started_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></dd>
+      </div>
+      <div class="flex justify-between">
+        <dt class="text-stone-500">Finished at:</dt>
+        <dd><%= @generation_task.finished_at&.strftime("%Y-%m-%d %H:%M:%S") || "—" %></dd>
+      </div>
+      <% if @generation_task.application_draft %>
+        <div class="flex justify-between">
+          <dt class="text-stone-500">Resulting Draft:</dt>
+          <dd><%= link_to "Draft ##{@generation_task.application_draft.id}", job_application_draft_path(@generation_task.job_application, @generation_task.application_draft), class: "text-blue-600 underline" %></dd>
+        </div>
+      <% end %>
+      <% if @generation_task.parent_draft %>
+        <div class="flex justify-between">
+          <dt class="text-stone-500">Redrafting:</dt>
+          <dd><%= link_to "Draft ##{@generation_task.parent_draft.id}", job_application_draft_path(@generation_task.job_application, @generation_task.parent_draft), class: "text-blue-600 underline" %></dd>
+        </div>
+      <% end %>
+    </dl>
+
+    <% if @generation_task.error.present? %>
+      <div class="rounded bg-red-50 p-4 text-sm text-red-700">
+        <strong class="font-semibold">Error:</strong>
+        <p class="mt-1 font-mono text-xs whitespace-pre-wrap"><%= @generation_task.error %></p>
+      </div>
+    <% end %>
+  </div>
+
+  <div class="rounded-lg border border-stone-200 bg-white p-6 space-y-4">
+    <h2 class="text-base font-semibold text-stone-800">Selector Output / Rationale</h2>
+    <% if @generation_task.selection_json.present? %>
+      <pre class="max-h-96 overflow-auto rounded bg-stone-50 p-3 font-mono text-xs text-stone-700"><%= JSON.pretty_generate(JSON.parse(@generation_task.selection_json)) rescue @generation_task.selection_json %></pre>
+    <% else %>
+      <p class="text-sm text-stone-400">No selection data recorded.</p>
+    <% end %>
+  </div>
+</div>

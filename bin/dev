@@ -1,5 +1,21 @@
 #!/usr/bin/env ruby
-# Runs the Rails server together with the Tailwind CSS watcher.
-warning = Process.spawn("bin/rails", "tailwindcss:watch", out: :err, err: :err)
-Process.detach(warning)
-exec "./bin/rails", "server", "-b", "0.0.0.0", *ARGV
+# Runs the Rails server + Tailwind watcher + Solid Queue supervisor.
+File.delete("tmp/pids/server.pid") if File.exist?("tmp/pids/server.pid")
+
+processes = []
+processes << Process.spawn("bin/rails", "tailwindcss:watch", out: :err, err: :err)
+
+# Pass environment variables as the FIRST argument to Process.spawn
+processes << Process.spawn({ "SOLID_QUEUE_IN_PUMA" => "1" }, "bin/jobs", "start", out: :err, err: :err)
+
+begin
+  pid = Process.spawn("./bin/rails", "server", "-b", "0.0.0.0", *ARGV)
+  Process.wait(pid)
+ensure
+  processes.each { |p| Process.kill(:TERM, p) rescue nil }
+  
+  begin
+    Process.waitall
+  rescue Errno::ECHILD
+  end
+end

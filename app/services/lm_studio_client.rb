@@ -18,7 +18,7 @@ class LmStudioClient
   def chat(messages, temperature: 0.7, max_tokens: 2048, response_format: nil)
     response = http_request(build_request(messages, temperature, max_tokens, response_format))
     parse(response)
-  rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, SocketError, Net::OpenTimeout
+  rescue Errno::ECONNREFUSED, Errno::EHOSTUNREACH, Errno::ECONNRESET, SocketError, Net::OpenTimeout, Net::ReadTimeout, Timeout::Error
     raise LmStudioUnavailableError, "LM Studio is not reachable at #{base_url}. Is the server running?"
   end
 

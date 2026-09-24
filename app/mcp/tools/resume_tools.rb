@@ -64,26 +64,81 @@ class DraftResumeTool < MCP::Tool
     return MCP::Tool::Response.new([ { type: "text", text: "Error: job application not found" } ]) unless application
     return MCP::Tool::Response.new([ { type: "text", text: "Error: kind must be resume or cover_letter" } ]) unless ApplicationDraft::KINDS.include?(kind)
 
-    lm = client || LmStudioClient.new(model: model)
-    generator = ResumeGenerator.new(client: lm)
-    content = generator.generate_for_application(
-      application,
-      focus: focus,
-      include_projects: include_projects != false,
-      include_roles: include_roles != false,
-      use_selection: use_selection != false,
-      kind: kind
+    task = GenerationTask.create!(
+      job_application: application,
+      kind: 0,
+      generation_kind: kind == "cover_letter" ? 1 : 0,
+      focus: focus
     )
 
-    draft = application.application_drafts.create!(
-      kind: kind,
-      label: [ lm.model.presence, "local" ].compact.first,
-      body: content
-    )
-    MCP::Tool::Response.new([ { type: "text", text: "#{kind.titleize} draft saved for '#{application.label}' (draft ##{draft.id}).\n\n#{content}" } ])
-  rescue LmStudioUnavailableError, LmStudioError => e
+    if client
+      generator = ResumeGenerator.new(client: client)
+      selection = begin
+        generator.select_records(application, kind: kind)
+      rescue StandardError
+        { selected: [], notes: "", fallback: true }
+      end
+      facts, notes = generator.prompt_facts(application, kind: kind, selection: selection)
+      prompt = generator.build_application_prompt(application, facts, focus: focus, kind: kind, relevance_notes: notes)
+      body = client.chat([ { role: "system", content: generator.system_prompt_for(kind) }, { role: "user", content: prompt } ], temperature: 0.3).to_s
+      draft = application.application_drafts.create!(
+        kind: kind,
+        label: [ client.model.presence, "local" ].compact.first,
+        body: body,
+        selection: selection
+      )
+      task.update!(application_draft: draft, model: client.model, selection_json: selection.to_json, succeeded: true, finished_at: Time.current)
+    else
+      ResumeGenerationJob.perform_now(generation_task_id: task.id)
+      task.reload
+    end
+
+    if task.succeeded? && task.application_draft
+      MCP::Tool::Response.new([ { type: "text", text: "#{kind.titleize} draft saved for '#{application.label}' (draft ##{task.application_draft.id}).\n\n#{task.application_draft.body}" } ])
+    else
+      MCP::Tool::Response.new([ { type: "text", text: "Error: #{task.error || 'Generation failed'}" } ])
+    end
+  rescue StandardError => e
     MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.message}" } ])
-  rescue ActiveRecord::RecordInvalid => e
-    MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.record.errors.full_messages.join("; ")}" } ])
+  end
+end
+
+class RedraftDraftTool < MCP::Tool
+  tool_name "redraft_draft"
+  title "Redraft Resume or Cover Letter Draft"
+  description "Takes an existing ApplicationDraft and user feedback, then generates a redrafted iteration incorporating the feedback."
+  input_schema(
+    properties: {
+      draft_id: { type: "integer", description: "Id of the parent draft to redraft" },
+      general_feedback: { type: "string", description: "General feedback about tone, length, or focus" },
+      selection_feedback: { type: "string", description: "Feedback on selections to trigger re-selection" },
+      model: { type: "string", description: "Override the LM Studio model name" }
+    },
+    required: [ "draft_id" ]
+  )
+
+  def self.call(draft_id:, general_feedback: nil, selection_feedback: nil, model: nil, client: nil, server_context: nil)
+    parent_draft = ApplicationDraft.find_by(id: draft_id.to_i)
+    return MCP::Tool::Response.new([ { type: "text", text: "Error: draft not found" } ]) unless parent_draft
+
+    task = GenerationTask.create!(
+      job_application: parent_draft.job_application,
+      kind: 0,
+      generation_kind: parent_draft.kind == "cover_letter" ? 1 : 0,
+      parent_draft: parent_draft,
+      feedback: general_feedback,
+      selection_feedback: selection_feedback
+    )
+
+    RedraftGenerationJob.perform_now(generation_task_id: task.id)
+
+    task.reload
+    if task.succeeded? && task.application_draft
+      MCP::Tool::Response.new([ { type: "text", text: "Redraft saved (draft ##{task.application_draft.id}).\n\n#{task.application_draft.body}" } ])
+    else
+      MCP::Tool::Response.new([ { type: "text", text: "Error: #{task.error || 'Generation failed'}" } ])
+    end
+  rescue StandardError => e
+    MCP::Tool::Response.new([ { type: "text", text: "Error: #{e.message}" } ])
   end
 end

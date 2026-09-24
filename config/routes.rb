@@ -8,6 +8,7 @@ Rails.application.routes.draw do
     resources :drafts, only: %i[show destroy], controller: "job_application_drafts" do
       member do
         post :toggle_favorite
+        post :redraft
       end
     end
     member do
@@ -35,6 +36,11 @@ Rails.application.routes.draw do
     end
     resources :taxonomies, only: %i[index new create show destroy]
     resources :tags, only: %i[create destroy]
+    resources :generation_tasks, only: %i[index show] do
+      member do
+        post :retry
+      end
+    end
   end
 
   # The app's embedded Model Context Protocol server (streamable HTTP).

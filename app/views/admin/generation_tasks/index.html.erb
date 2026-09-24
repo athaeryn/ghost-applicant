@@ -1,0 +1,59 @@
+<% content_for :title, "Generation Tasks" %>
+
+<div class="flex items-center justify-between">
+  <div>
+    <h1 class="text-2xl font-bold">Generation Tasks</h1>
+    <p class="mt-1 text-sm text-stone-500">History of background generation and redraft tasks.</p>
+  </div>
+  <%= link_to "Back to Admin", admin_path, class: "text-sm text-stone-600 hover:underline" %>
+</div>
+
+<div class="mt-6 overflow-x-auto rounded-lg border border-stone-200 bg-white">
+  <table class="min-w-full divide-y divide-stone-200 text-left text-sm">
+    <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-500">
+      <tr>
+        <th class="px-4 py-3">ID</th>
+        <th class="px-4 py-3">Application</th>
+        <th class="px-4 py-3">Kind</th>
+        <th class="px-4 py-3">Status</th>
+        <th class="px-4 py-3">Model</th>
+        <th class="px-4 py-3">Created</th>
+        <th class="px-4 py-3 text-right">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-stone-100">
+      <% @generation_tasks.each do |task| %>
+        <tr>
+          <td class="px-4 py-3 font-mono text-xs"><%= task.id %></td>
+          <td class="px-4 py-3 font-medium">
+            <%= link_to task.job_application.label, job_application_path(task.job_application), class: "hover:underline text-blue-600" %>
+          </td>
+          <td class="px-4 py-3"><%= task.generation_kind == 1 ? "Cover Letter" : "Resume" %></td>
+          <td class="px-4 py-3">
+            <% if task.succeeded? %>
+              <span class="inline-flex items-center rounded-full bg-green-50 px-2 py-0.5 text-xs font-medium text-green-700">Succeeded</span>
+            <% elsif task.error.present? %>
+              <span class="inline-flex items-center rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700" title="<%= task.error %>">Failed</span>
+              <p class="mt-1 max-w-xs truncate font-mono text-xs text-red-600" title="<%= task.error %>"><%= task.error %></p>
+            <% else %>
+              <span class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700">Running / Pending</span>
+            <% end %>
+          </td>
+          <td class="px-4 py-3 text-stone-500 font-mono text-xs"><%= task.model.presence || "—" %></td>
+          <td class="px-4 py-3 text-stone-500"><%= time_ago_in_words(task.created_at) %> ago</td>
+          <td class="px-4 py-3 text-right whitespace-nowrap">
+            <%= link_to "View", admin_generation_task_path(task), class: "font-medium text-stone-700 hover:underline" %>
+            <% if task.retryable? %>
+              <%= button_to "Retry", retry_admin_generation_task_path(task), method: :post, class: "ml-3 inline font-medium text-blue-600 hover:underline", form_class: "inline-block" %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+      <% if @generation_tasks.empty? %>
+        <tr>
+          <td colspan="7" class="px-4 py-8 text-center text-stone-400">No generation tasks recorded yet.</td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+</div>
